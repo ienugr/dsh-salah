@@ -1,0 +1,9 @@
+/* Build-time input. No preflight or global daisyUI themes are shipped. */
+@import 'tailwindcss' source(none);
+@source './client.js';
+@plugin 'daisyui' {
+  themes: false;
+  include: button, input, select, card, badge, checkbox, fieldset;
+  prefix: 'sl-';
+  logs: false;
+}

@@ -1,0 +1,60 @@
+{
+  "package": "@local/dsh-salah",
+  "version": "1.2.0",
+  "verifiedOn": "2026-11-08",
+  "status": "PASSED",
+  "browserTestsRun": true,
+  "exitCode": 0,
+  "environment": {
+    "harness": "0.2.1-rc.5",
+    "node": "24.15.0",
+    "browser": "Chrome/156.0.8078.81",
+    "platform": "macOS arm64"
+  },
+  "scope": "Actual installed Salah UI inside the real Harness. Only /api/salah uses the production SalahService with synthetic in-memory storage, credentials and provider engine. This is not full Host/provider-network end-to-end coverage.",
+  "checks": [
+    { "name": "device geolocation is never requested before an explicit user action", "status": "PASSED" },
+    { "name": "permission denial is recoverable through manual city selection", "status": "PASSED" },
+    { "name": "synthetic device location is transient and late GPS cannot override changed manual source settings", "status": "PASSED" },
+    { "name": "setup review requires source, location/timezone, and calculation acknowledgement before confirmation", "status": "PASSED" },
+    { "name": "SHA-256 browser acknowledgement survives reload only for matching saved settings", "status": "PASSED" },
+    { "name": "fresh confirmation rejects a shared-settings A-to-B status race and resets acknowledgement", "status": "PASSED" },
+    { "name": "seeded legacy MyQuran Singapore Hanafi preferences require review without automatic configuration", "status": "PASSED" },
+    { "name": "MyQuran labels calculation choices as offline fallback and requires provider-aware review", "status": "PASSED" },
+    { "name": "provider failure, offline fallback, and source changes never retain misleading provenance", "status": "PASSED" },
+    { "name": "refresh-failed provenance remains latched while a successful retry is pending", "status": "PASSED" },
+    { "name": "commercial geocoding without a Host key cannot search or silently switch providers", "status": "PASSED" },
+    { "name": "widget exposes source/freshness and its real timer advances after review", "status": "PASSED" },
+    { "name": "floating widget supports pointer drag, keyboard movement, keyboard hide, and reopening", "status": "PASSED" },
+    { "name": "narrow viewport stays usable under both CSS color-scheme preferences", "status": "PASSED" },
+    { "name": "schedule timezone and midnight rollover follow the owned-page clock rather than UTC date", "status": "PASSED" },
+    { "name": "actual Host light/dark themes render correctly and original theme is restored", "status": "PASSED" }
+  ],
+  "unverifiedMandatoryCases": [],
+  "themeVerification": {
+    "capturedCurrentSavedChoiceBeforeChanges": true,
+    "acknowledgedPreferenceWrites": 2,
+    "exactNamedRpcArgumentsMatched": true,
+    "httpResponsesFinishedSuccessfully": true,
+    "rpcCorrelationAndLogicalSuccessVerified": true,
+    "namespacePreferenceAndRevisionFloorsVerified": true,
+    "independentFreshReadAfterOriginalTabClosed": true,
+    "savedAndSelectedSourceRestored": true,
+    "htmlIndicatorAndBodyThemeStateRestored": true,
+    "disappearedGeneralControlsReopenedThroughObservedNavigation": true,
+    "extraPreferenceWritesForUiRecovery": 0
+  },
+  "cleanup": {
+    "ownedTestTabsClosed": true,
+    "syntheticServiceClosed": true,
+    "existingBrowserAndTabsLeftOpen": true,
+    "stderrEmpty": true
+  },
+  "verificationLimits": [
+    "No real device GPS position or OS permission prompt was used; geolocation responses are owned-tab browser API fixtures.",
+    "No real commercial credential, entitlement or paid provider request was tested.",
+    "A fresh dependency checkout is not a fresh authenticated Harness profile or a real storage-restart test.",
+    "Native Windows and Node 22 CI lanes are configured but were not remotely executed.",
+    "This file records the executed snapshot; it is not a claim that future edits or provider availability have been verified."
+  ]
+}

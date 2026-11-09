@@ -1,0 +1,23 @@
+{
+  "control": {
+    "kind": "buttons",
+    "scope": "[role=\"dialog\"]",
+    "choices": { "light": "Light", "dark": "Dark", "system": "System" }
+  },
+  "navigation": {
+    "launcherSelector": "[data-slot=\"settings.launcher\"] button[aria-haspopup=\"menu\"]",
+    "dialogSelector": "[role=\"dialog\"]",
+    "settings": { "role": "menuitem", "name": "Settings" },
+    "general": { "role": "button", "name": "General" }
+  },
+  "close": [{ "role": "button", "name": "Close" }],
+  "restoreOpen": { "idempotent": true },
+  "values": { "light": "light", "dark": "dark" },
+  "indicator": {
+    "selector": "html",
+    "attribute": "data-ds-theme-source",
+    "light": "light",
+    "dark": "dark"
+  },
+  "cssSelector": "body"
+}
