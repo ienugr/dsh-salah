@@ -1,29 +1,34 @@
 # Publishing Salah to npm
 
-**Preparation snapshot — 2026-11-09: npm package prepared, not published to npm.** The GitHub `v1.2.0` tarball release is a separate distribution; it does not publish the npm package. The intended first public npm package is `@icanhcorpse/dsh-salah@1.2.0`. The npm account is `icanhcorpse`; the source repository remains [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). Changing the npm scope does not change GitHub ownership.
+**Preparation snapshot — 2026-11-09: npm package prepared, not published to npm.** The existing GitHub `v1.2.0` tarball release was distributed separately and did not publish the npm package. Future stable GitHub releases can trigger OIDC npm publishing after the owner-side setup below. The intended first public npm package is `@icanhcorpse/dsh-salah@1.2.0`. The npm account is `icanhcorpse`; the source repository remains [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). Changing the npm scope does not change GitHub ownership.
 
-This is an **owner-run manual checklist**, not authorization for an agent or CI to publish, authenticate, alter a live profile, or migrate an installation. No GitHub publishing workflow is enabled. No unattended publication or first-publish OIDC setup is assumed.
+This is an **owner-side setup checklist**. The [GitHub Actions publisher workflow](https://github.com/ienugr/dsh-salah/blob/main/.github/workflows/publish-npm.yml) uses npm Trusted Publishing (OIDC); it does not use an `NPM_TOKEN`. Future stable GitHub releases trigger the workflow after the one-time npm trust configuration below. The existing `v1.2.0` release predates that workflow and will not trigger retroactively; publishing that tag requires an explicit `workflow_dispatch` after setup. The workflow does not configure the npm account or grant itself publishing authority until npm trusts its exact repository, workflow, and environment identity.
 
-## 1. Confirm identity and package availability
+## 1. Configure npm Trusted Publishing
 
-In your own terminal, authenticate directly with npm if needed. Never paste a token, password, recovery code, or one-time code into agent chat, issues, or source files.
+Sign in to the npm account `icanhcorpse` directly on npm. Never paste an access token, password, recovery code, or one-time code into agent chat or the repository.
 
-```sh
-npm login --registry=https://registry.npmjs.org
-npm whoami --registry=https://registry.npmjs.org
-```
+Configure the package's **Trusted Publisher** using these exact values:
 
-`npm whoami` must return `icanhcorpse`. Confirm that this account controls the intended scope and has permission to publish this package; the account name alone does not prove that permission.
+- Provider: GitHub Actions
+- Repository owner: `ienugr`
+- Repository: `dsh-salah`
+- Workflow filename: `publish-npm.yml`
+- GitHub environment: `npm-publish`
 
-The preparation session's anonymous public-registry lookup returned **404**. That proves only that the package was not anonymously visible at that time. It does not establish account authentication, namespace ownership, publishing rights, or the absence of a private package.
+See [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers). Create the GitHub `npm-publish` environment and use the same name in npm's trusted-publisher configuration. You may add required reviewers to the environment as an additional approval gate. The workflow requests GitHub OIDC permission only in its publishing job; it does not use or require an `NPM_TOKEN` secret.
 
-Check the exact version before publishing:
+The package is not yet published. If npm's account UI will not let you configure a Trusted Publisher for this unpublished name, stop and follow npm's current documented bootstrap flow with the account owner. Do not add a long-lived token to the repository, an issue, or agent chat. A manual run with `publish: false` only validates and never requests OIDC; do not set `publish: true` or authorize npm publication until npm shows the expected trusted publisher.
+
+The earlier anonymous public-registry lookup returned **404**. That was only a visibility check at that time; it did not verify account ownership, publishing rights, or trusted-publisher setup.
+
+Check exact-version availability before any publish attempt:
 
 ```sh
 npm view @icanhcorpse/dsh-salah@1.2.0 name version --json --registry=https://registry.npmjs.org
 ```
 
-A failed lookup is not permission to overwrite a version. Published npm name/version pairs are immutable; do not assume that unpublishing permits reuse. Keep `1.2.0` for this initial preparation unless the owner makes an explicit version decision after checking registry state.
+A failed lookup is not permission to overwrite or reuse a published name/version. npm versions are immutable; never assume unpublishing permits reuse.
 
 ## 2. Review the prepared source
 
@@ -33,7 +38,7 @@ Review the complete diff, including [the package manifest](<../package.json>), [
 - Repository, homepage, and issue metadata point to `ienugr/dsh-salah`, not a guessed npm-account GitHub repository.
 - Host, patch, and client package references agree. Stable row/slot identifiers, storage domain `salah_preferences` version `1`, and the `dsh.salah.*` browser keys are not renamed as a side effect.
 - Declared compatibility remains **Harness 0.2.1-rc.5** and **Node.js >=22.15**. Do not widen it without evidence.
-- During preparation, the [README](<../README.md>) accurately labels publication pending; finalize neutral availability wording before the final pack as described below. [The npm review](<NPM_RELEASE_REVIEW.md>) retains dated status, actual results, and remaining limits.
+- The [README](<../README.md>) separates the existing GitHub bundle from conditional npm installation. The [OIDC workflow](https://github.com/ienugr/dsh-salah/blob/main/.github/workflows/publish-npm.yml) binds publishing to a stable published GitHub release or an explicitly dispatched existing tag; npm account setup remains owner-controlled. [The npm review](<NPM_RELEASE_REVIEW.md>) retains validation evidence and limits.
 - The [November 8 browser record](<BROWSER_RESULTS.json>) still identifies `@local/dsh-salah`. Preserve that historical artifact; do not relabel it as a renamed-package test.
 
 Commit, push, tag, or create a GitHub release only as separate, explicitly chosen owner actions. The prior main-branch CI result does not validate uncommitted npm-preparation changes.
@@ -50,7 +55,7 @@ npm run build:ui
 npm run check:clean-install
 ```
 
-The clean-install gate runs `check`, `test`, `test:e2e:preflight`, `check:release`, `build:ui`, and then exactly one `check:package` integration in an isolated dependency checkout; it also compares the client artifact. There is no need to repeat these standalone checks just to inflate the log. `npm run check:package` remains available for a focused real-tarball consumer check, and the publication hook invokes it independently. Neither command publishes to npm or installs a live Harness bundle. For a quick development loop, see [Contributing](<../CONTRIBUTING.md>).
+The clean-install gate runs `check`, `test`, `test:e2e:preflight`, `check:release`, `build:ui`, and then exactly one `check:package` integration in an isolated dependency checkout; it also compares the client artifact. There is no need to repeat these standalone checks just to inflate the log. `npm run check:package` remains available for a focused real-tarball consumer check. The OIDC workflow runs these gates before creating its publish artifact; its final job uses `--ignore-scripts` so no package lifecycle code executes with the OIDC permission. A manual `npm publish` that runs lifecycle hooks still invokes `prepublishOnly`. These validation commands alone do not publish to npm or install a live Harness bundle. For a quick development loop, see [Contributing](<../CONTRIBUTING.md>).
 
 Review every result; do not convert a missing script, skipped test, or partial run into a pass. Record dates, environment, commands, and actual outcomes in [the npm review](<NPM_RELEASE_REVIEW.md>). No browser attachment, Host theme change, profile installation, or authentication is part of these local gates. A fresh authorized live-Harness smoke test is a separate step after publication.
 
@@ -72,15 +77,15 @@ Verify the archive contains its runtime exports, bundle patch, generated client,
 
 If any reviewed source, metadata, generated artifact, or documentation changes afterward, rerun the affected gates and pack inspection. Make the decision to publish against that exact reviewed content.
 
-## 4. Publish only after explicit owner approval
+## 4. Use the GitHub OIDC publishing workflow
 
-**This command changes the public registry. Do not run it during preparation.** Once identity, permissions, review, and all required gates are satisfactory, the owner may explicitly run:
+The [publisher workflow](https://github.com/ienugr/dsh-salah/blob/main/.github/workflows/publish-npm.yml) reacts to `release.published` for stable releases. It validates the published release record and exact tag/commit, requires the tag's commit to be on `main`, checks that the tag matches the scoped package version, runs the clean-install/build/test/package checks and runtime dependency audit, and installs the exact packed artifact in a production-only consumer. Only a second job receives `id-token: write`; it rechecks the tag/commit, downloads and publishes that validated tarball with lifecycle scripts disabled. Trusted Publishing automatically supplies provenance for stable release events; the one-time manual v1.2.0 recovery deliberately opts out rather than attest the newer `main` event SHA. Test and package lifecycle code does not run in the OIDC-enabled publishing job. No `NPM_TOKEN` is used.
 
-```sh
-npm publish --access public --registry=https://registry.npmjs.org
-```
+The GitHub `v1.2.0` release was published before this workflow existed, so its original `release.published` event will **not** run again. After the one-time npm Trusted Publisher setup, an authorized repository maintainer can manually dispatch **Publish to npm** from `main` with input `tag: v1.2.0`. By default, `publish` is false, so the validation job runs without the OIDC publishing job. Set `publish: true` only after the trusted publisher is visibly configured, the exact npm version is available, and the package owner explicitly approves publication.
 
-The package's `prepublishOnly` hook reruns release/package checks when the owner invokes publication; it does not authorize or initiate publication on its own. Complete any npm-required authentication or second-factor prompt directly with npm. Do not disable account protections or disclose credentials to an agent. A local pack/check success is not a publish success.
+This one-time manual run uses OIDC for authentication but opts out of provenance: the workflow dispatch event is on `main` while the npm archive comes from the older `v1.2.0` tag. It sets `NPM_CONFIG_PROVENANCE=false` to avoid a misleading source attestation. Future `release.published` runs use the tag's own ref/SHA and npm's automatic provenance ([npm/GitHub Trusted Publishing notes](https://github.blog/changelog/2023-07-31-npm-trusted-publishing-with-oidc-is-generally-available/)). This preparation did not dispatch the workflow or publish anything to npm.
+
+For a future stable release published directly after successful source CI, the GitHub Release event triggers the workflow automatically once OIDC is configured. Drafts and prereleases are rejected. Promoting a release that was first published as a prerelease is not automated by this trigger; create a new stable release/tag or review an explicit workflow change. Tags whose version differs from `package.json`, tags not on `main`, and missing/unpublished GitHub release records are rejected before npm publication. The workflow does not write or alter the GitHub release notes.
 
 ## 5. Verify public availability and a real consumer install
 

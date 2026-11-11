@@ -16,7 +16,7 @@ const releaseFiles = [
   'cordis.patch.yml', 'icon.svg', 'locale/en.json', 'locale/id.json',
   'README.md', 'LICENSE', 'PRIVACY.md', 'SECURITY.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'THIRD_PARTY_NOTICES.md',
   'docs/RELEASE_REVIEW.md', 'docs/PUBLISHING.md', 'docs/NPM_RELEASE_REVIEW.md', 'docs/HOST_THEME_CONTRACT.json', 'docs/BROWSER_RESULTS.json', 'docs/images/salah-widget.webp', 'docs/images/salah-dashboard.webp',
-  '.github/workflows/checks.yml',
+  '.github/workflows/checks.yml', '.github/workflows/publish-npm.yml',
   'test/e2e/preflight.test.mjs', 'test/e2e/fixture-contract.test.mjs', 'test/e2e/theme-restoration.test.mjs',
   'test/e2e/real-harness.mjs', 'test/e2e/salah-api.mjs', 'test/e2e/regressions.mjs', 'test/e2e/host-theme.mjs',
 ];

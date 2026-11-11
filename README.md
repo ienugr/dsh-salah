@@ -1,6 +1,6 @@
 # Salah for DeepSeek Harness
 
-> **Two distribution options:** use the [GitHub `v1.2.0` bundle](#install-the-github-release-bundle) once the release is published, or use the npm instructions only when `@icanhcorpse/dsh-salah@1.2.0` is publicly available on npm. A GitHub release does not publish to npm. The [local-checkout fallback](#local-checkout-fallback) remains available.
+> **Two distribution options:** install the [GitHub `v1.2.0` bundle](#install-the-github-release-bundle), or use npm only when `@icanhcorpse/dsh-salah@1.2.0` is publicly available. The existing GitHub release was distributed separately and did not publish to npm; future stable releases published directly after source CI can trigger npm publication after the owner configures [Trusted Publishing](<docs/PUBLISHING.md>). The [local-checkout fallback](#local-checkout-fallback) remains available.
 
 Daily prayer times, a live countdown, and a compact floating widget—right inside your workspace.
 
@@ -45,7 +45,7 @@ Other Harness versions have not been validated. Do not bypass a compatibility wa
 
 ### Install the GitHub release bundle
 
-After [GitHub release `v1.2.0`](https://github.com/ienugr/dsh-salah/releases/tag/v1.2.0) is published, use its npm-compatible tarball. It contains the built interface; no clone, global installation or local build is needed. The Host still needs internet access to resolve its runtime dependencies.
+Use the published [GitHub release `v1.2.0`](https://github.com/ienugr/dsh-salah/releases/tag/v1.2.0) and its npm-compatible tarball. It contains the built interface; no clone, global installation or local build is needed. The Host still needs internet access to resolve its runtime dependencies.
 
 Copy this request into Harness:
 
@@ -211,7 +211,7 @@ Widget positioning, visibility, and setup acknowledgement are browser view contr
 
 See [Contributing](<CONTRIBUTING.md>) for full development dependencies, builds, and tests. The [npm release review](<docs/NPM_RELEASE_REVIEW.md>) separates current packaging checks from the [historical November 8 browser result](<docs/BROWSER_RESULTS.json>) for `@local/dsh-salah` (16 cases) and [its release review](<docs/RELEASE_REVIEW.md>). Those earlier results are not a browser or registry-install pass for the renamed package.
 
-Maintainers publish manually using [Publishing](<docs/PUBLISHING.md>). No live migration was performed during npm preparation; the original linked checkout remains running unchanged. Commit, push, and publication are separate owner actions.
+Future stable GitHub releases can publish to npm through Trusted Publishing after the one-time owner setup in [Publishing](<docs/PUBLISHING.md>). The existing v1.2.0 release has not been dispatched to npm; its one-off recovery requires explicit owner approval. No live migration was performed during npm preparation, and the original linked checkout remains unchanged.
 
 ## License and acknowledgments
 

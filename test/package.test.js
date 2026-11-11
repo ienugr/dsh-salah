@@ -1,7 +1,8 @@
 /* Distribution contracts use built-ins; no browser, React, or Host activation. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { copyFile, lstat, mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -54,6 +55,19 @@ test('packed inventory rejects missing assets, private inputs, traversal and imp
     ...['.env', '.npmrc', 'node_modules/private.js', '.git/config', 'docs/.env.production', 'runtime-state.json', 'docs/credentials.json', '../escape', 'docs/../escape', 'docs\\escape', '/absolute', 'artifact.tgz'].map(path => ({ files: [...files, { path, size: 10, mode: 420 }], entryCount: files.length + 1, unpackedSize: (files.length + 1) * 10 })),
     { files: [...files, files[0]], entryCount: files.length + 1, unpackedSize: (files.length + 1) * 10 },
   ]) assert.throws(() => validatePackInventory([{ ...valid, ...mutation }]), /package|packed|inventory|entry|size|filename/i);
+});
+
+test('package verifier accepts only explicit project and artifact-output arguments', async () => {
+  const { parsePackageCheckArguments } = await import('../scripts/check-package.mjs');
+  const projectDirectory = join(tmpdir(), 'release source');
+  const artifactDirectory = join(tmpdir(), 'verified artifact');
+  assert.deepEqual(parsePackageCheckArguments([]), {});
+  assert.deepEqual(parsePackageCheckArguments(['--project-dir', projectDirectory, '--output-dir', artifactDirectory]), {
+    projectRoot: resolve(projectDirectory), outputDirectory: resolve(artifactDirectory),
+  });
+  for (const args of [['--unknown', 'value'], ['--output-dir'], ['--project-dir', '--output-dir', join(tmpdir(), 'out')]]) {
+    assert.throws(() => parsePackageCheckArguments(args), /Unknown package check option|Missing value/i);
+  }
 });
 
 test('isolated npm subprocess environment excludes inherited credentials, config, preload and profile state', async () => {
@@ -159,6 +173,49 @@ test('packed Markdown links reject checkout-only targets even when files exist a
     assert.ok(basename(target).startsWith(prefix) && target.startsWith(temporaryRoot + sep));
     assert.equal(await realpath(target), target);
     assert.ok((await lstat(target)).isDirectory());
+    await rm(target, { recursive: true, force: true, maxRetries: 3 });
+  }
+});
+
+test('publishing preserves the exact validated npm archive and rejects unsafe destinations', { timeout: 15000 }, async () => {
+  const { preserveValidatedPackageArtifact, REQUIRED_FILES } = await import('../scripts/check-package.mjs');
+  const temporaryRoot = await realpath(tmpdir());
+  const prefix = 'salah npm artifact export test ';
+  const fixture = await mkdtemp(join(temporaryRoot, prefix));
+  try {
+    const sourceRoot = join(fixture, 'source');
+    const output = join(fixture, 'verified output');
+    await mkdir(sourceRoot);
+    await mkdir(output);
+    const filename = 'icanhcorpse-dsh-salah-1.2.0.tgz';
+    const archive = join(fixture, filename);
+    const bytes = Buffer.from(`validated archive fixture ${'x'.repeat(256)}`);
+    await writeFile(archive, bytes);
+    const files = REQUIRED_FILES.map(path => ({ path, size: 10, mode: 420 }));
+    const inventory = {
+      name: packageName, version: '1.2.0', id: `${packageName}@1.2.0`, filename,
+      size: bytes.length, unpackedSize: files.length * 10, entryCount: files.length, files,
+      shasum: createHash('sha1').update(bytes).digest('hex'),
+      integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,
+    };
+    const exported = await preserveValidatedPackageArtifact({ sourceArchive: archive, destinationDirectory: output, projectRoot: sourceRoot, inventory });
+    assert.deepEqual(await readFile(exported.path), bytes, 'exported archive bytes must be identical');
+    assert.equal(exported.sha256, createHash('sha256').update(bytes).digest('hex'));
+    assert.equal(await readFile(join(output, 'SHA256SUMS'), 'utf8'), `${exported.sha256}  ${filename}\n`);
+
+    const nested = join(sourceRoot, 'artifact-output');
+    await mkdir(nested);
+    await assert.rejects(preserveValidatedPackageArtifact({ sourceArchive: archive, destinationDirectory: nested, projectRoot: sourceRoot, inventory }), /outside the source package/i);
+
+    const tamperedOutput = join(fixture, 'tampered output');
+    await mkdir(tamperedOutput);
+    await assert.rejects(preserveValidatedPackageArtifact({ sourceArchive: archive, destinationDirectory: tamperedOutput, projectRoot: sourceRoot, inventory: { ...inventory, shasum: '0'.repeat(40) } }), /SHA-1/i);
+    assert.deepEqual(await readdir(tamperedOutput), [], 'invalid archive must not be exported');
+  } finally {
+    const target = resolve(fixture);
+    assert.equal(dirname(target), temporaryRoot);
+    assert.ok(basename(target).startsWith(prefix) && target.startsWith(temporaryRoot + sep));
+    assert.equal(await realpath(target), target);
     await rm(target, { recursive: true, force: true, maxRetries: 3 });
   }
 });

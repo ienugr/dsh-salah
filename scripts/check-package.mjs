@@ -1,6 +1,7 @@
 /* Public npm artifact validation. Never publishes or activates a Harness plugin. */
 import assert from 'node:assert/strict';
-import { lstat, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { constants as fsConstants } from 'node:fs';
+import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, join, posix, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -250,9 +251,49 @@ export async function previewPackageInventory(projectRoot) {
   }
 }
 
-export async function verifyPackedPackage({ projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..') } = {}) {
-  // Fail before any npm/network work for an invalid checkout.
-  const { manifest } = await validatePackageDirectory(projectRoot);
+async function assertEmptyArtifactDirectory(destinationDirectory, projectRoot) {
+  const sourceRoot = await realpath(resolve(projectRoot));
+  const output = resolve(destinationDirectory);
+  assert.ok(output !== sourceRoot && !output.startsWith(sourceRoot + sep), 'Release artifacts must be written outside the source package.');
+  assert.equal(await realpath(output), output, 'Release artifact directory must not be a symlink.');
+  assert.ok((await lstat(output)).isDirectory(), 'Release artifact output must be a directory.');
+  assert.deepEqual(await readdir(output), [], 'Release artifact output must start empty.');
+  return output;
+}
+
+export async function preserveValidatedPackageArtifact({ sourceArchive, destinationDirectory, projectRoot, inventory } = {}) {
+  assert.ok(typeof sourceArchive === 'string' && typeof destinationDirectory === 'string' && typeof projectRoot === 'string', 'An exact source archive, output directory and source root are required.');
+  const output = await assertEmptyArtifactDirectory(destinationDirectory, projectRoot);
+  validatePackInventory([inventory]);
+
+  const filename = inventory.filename;
+  assert.equal(basename(filename), filename, 'Packed archive filename must not escape the artifact directory.');
+  const source = resolve(sourceArchive);
+  assert.equal(await realpath(source), source, 'Validated source archive must not be a symlink.');
+  assert.ok((await lstat(source)).isFile(), 'Validated source archive must be a regular file.');
+  const bytes = await readFile(source);
+  assert.equal(bytes.length, inventory.size, 'Validated source archive size mismatch.');
+  assert.equal(createHash('sha1').update(bytes).digest('hex'), inventory.shasum, 'Validated source archive SHA-1 mismatch.');
+  assert.equal(`sha512-${createHash('sha512').update(bytes).digest('base64')}`, inventory.integrity, 'Validated source archive SHA-512 mismatch.');
+
+  const target = join(output, filename);
+  assert.equal(dirname(target), output);
+  // Write the already verified bytes, never reopen the source after hashing it.
+  await writeFile(target, bytes, { flag: 'wx' });
+  assert.equal(await realpath(target), target, 'Copied release archive must not be a symlink.');
+  assert.ok((await lstat(target)).isFile(), 'Copied release archive must be a regular file.');
+  const copied = await readFile(target);
+  assert.deepEqual(copied, bytes, 'Preserved release archive must exactly match the validated bytes.');
+  const sha256 = createHash('sha256').update(copied).digest('hex');
+  await writeFile(join(output, 'SHA256SUMS'), `${sha256}  ${filename}\n`, { flag: 'wx' });
+  return { path: target, checksumPath: join(output, 'SHA256SUMS'), sha256 };
+}
+
+export async function verifyPackedPackage({ projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..'), outputDirectory } = {}) {
+  // Fail before any npm/network work for an invalid checkout or unsafe artifact output path.
+  const sourceRoot = resolve(projectRoot);
+  const { manifest } = await validatePackageDirectory(sourceRoot);
+  if (outputDirectory !== undefined) await assertEmptyArtifactDirectory(outputDirectory, sourceRoot);
   const temporaryRoot = await realpath(tmpdir());
   const owned = await mkdtemp(join(temporaryRoot, temporaryPrefix));
   let cleanupSafe = true;
@@ -288,9 +329,11 @@ export async function verifyPackedPackage({ projectRoot = resolve(dirname(fileUR
     await writeFile(probe, consumerProbe, { flag: 'wx' });
     const result = await runBoundedStage('real Node consumer import', { file: process.execPath, args: [probe] }, { cwd: consumer, env, timeoutMs: 60000, signal: controller.signal });
     console.log(result.stdout.trim());
+    const releaseArtifact = outputDirectory === undefined ? undefined : await preserveValidatedPackageArtifact({ sourceArchive: tarball, destinationDirectory: outputDirectory, projectRoot: sourceRoot, inventory });
+    if (releaseArtifact) console.log(`Preserved the exact consumer-validated npm archive; SHA-256 ${releaseArtifact.sha256}.`);
     console.log(`Package checks passed: ${manifest.name}@${manifest.version}; ${paths.size} packed files; ${inventory.size} archive bytes; actual production-only consumer install/import.`);
     console.log('Browser provenance: historical @local/dsh-salah@1.2.0, 2026-11-08 only. The current npm identity/runtime/UI was not live-retested. No publication or live Harness/profile changes.');
-    return { name: manifest.name, version: manifest.version, files: paths.size, size: inventory.size, consumerImported: true, currentNpmPackageBrowserRetested: false };
+    return { name: manifest.name, version: manifest.version, files: paths.size, size: inventory.size, consumerImported: true, currentNpmPackageBrowserRetested: false, releaseArtifact };
   } catch (error) {
     if (error.cleanupUnsafe) cleanupSafe = false;
     throw error;
@@ -306,7 +349,20 @@ export async function verifyPackedPackage({ projectRoot = resolve(dirname(fileUR
   }
 }
 
+export function parsePackageCheckArguments(args) {
+  const options = {};
+  for (let index = 0; index < args.length; index++) {
+    const option = args[index];
+    assert.ok(index + 1 < args.length && args[index + 1] && !args[index + 1].startsWith('--'), `Missing value for ${option}.`);
+    const value = args[++index];
+    if (option === '--project-dir') options.projectRoot = resolve(value);
+    else if (option === '--output-dir') options.outputDirectory = resolve(value);
+    else assert.fail(`Unknown package check option: ${option}.`);
+  }
+  return options;
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try { await verifyPackedPackage(); }
+  try { await verifyPackedPackage(parsePackageCheckArguments(process.argv.slice(2))); }
   catch (error) { console.error(error.message); process.exitCode = verificationFailureExitCode(error); }
 }

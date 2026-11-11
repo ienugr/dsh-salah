@@ -1,0 +1,302 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: One-time current release tag
+        required: true
+        type: choice
+        options:
+          - v1.2.0
+      publish:
+        description: Set true only after npm OIDC setup to publish this tag
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish-${{ github.event.release.tag_name || inputs.tag || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release before publishing
+    if: github.repository == 'ienugr/dsh-salah' && (github.event_name != 'release' || github.event.release.prerelease == false) && (github.event_name != 'workflow_dispatch' || (github.ref == 'refs/heads/main' && inputs.tag == 'v1.2.0'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    outputs:
+      package_version: ${{ steps.release-metadata.outputs.package_version }}
+      release_tag: ${{ steps.release-metadata.outputs.release_tag }}
+      release_commit: ${{ steps.release-metadata.outputs.release_commit }}
+    steps:
+      - name: Check out current workflow validation tools
+        uses: actions/checkout@v4
+        with:
+          ref: refs/heads/main
+          path: release-tooling
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out the selected release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          path: release-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Validate published GitHub release, tag, package, and main ancestry
+        id: release-metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: ${{ github.workspace }}/release-source
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { execFileSync } from 'node:child_process';
+          import { appendFile, readFile } from 'node:fs/promises';
+
+          const tag = process.env.RELEASE_TAG || '';
+          const repository = process.env.GITHUB_REPOSITORY || '';
+          assert.equal(repository, 'ienugr/dsh-salah', 'Unexpected publishing repository.');
+          assert.match(tag, /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/, 'Only a stable vMAJOR.MINOR.PATCH release tag may publish.');
+
+          const manifest = JSON.parse(await readFile('package.json', 'utf8'));
+          assert.equal(manifest.name, '@icanhcorpse/dsh-salah', 'Unexpected npm package name.');
+          assert.equal(tag, `v${manifest.version}`, 'Release tag and package version must match exactly.');
+          assert.equal(manifest.private, false, 'Refusing to publish a private package.');
+          assert.equal(manifest.publishConfig?.access, 'public', 'Refusing to publish without public package access.');
+          assert.equal(manifest.publishConfig?.registry, 'https://registry.npmjs.org', 'Refusing an unexpected npm registry.');
+
+          const actualTag = execFileSync('git', ['describe', '--tags', '--exact-match', 'HEAD'], { encoding: 'utf8' }).trim();
+          const taggedCommit = execFileSync('git', ['rev-parse', `${tag}^{commit}`], { encoding: 'utf8' }).trim();
+          const headCommit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+          assert.equal(actualTag, tag, 'Checkout is not exactly at the selected release tag.');
+          assert.equal(headCommit, taggedCommit, 'Checked-out commit does not match the selected tag.');
+
+          execFileSync('git', ['fetch', '--no-tags', 'origin', 'main'], { stdio: 'ignore', timeout: 60_000 });
+          try {
+            execFileSync('git', ['merge-base', '--is-ancestor', 'HEAD', 'FETCH_HEAD'], { stdio: 'ignore', timeout: 10_000 });
+          } catch {
+            throw new Error('The release tag must point to a commit on origin/main.');
+          }
+
+          const token = process.env.GH_TOKEN;
+          assert.ok(token, 'GitHub release metadata token is unavailable.');
+          const url = `https://api.github.com/repos/${repository}/releases/tags/${encodeURIComponent(tag)}`;
+          const response = await fetch(url, {
+            headers: {
+              accept: 'application/vnd.github+json',
+              authorization: `Bearer ${token}`,
+              'x-github-api-version': '2022-11-28',
+            },
+          });
+          assert.equal(response.status, 200, `No published GitHub release exists for ${tag} (HTTP ${response.status}).`);
+          const release = await response.json();
+          assert.equal(release.tag_name, tag, 'GitHub release tag does not match.');
+          assert.equal(release.draft, false, 'Draft releases cannot publish to npm.');
+          assert.equal(release.prerelease, false, 'Prereleases cannot publish to npm.');
+
+          const eventType = process.env.GITHUB_EVENT_NAME;
+          if (eventType === 'release') {
+            assert.equal(process.env.GITHUB_REF, `refs/tags/${tag}`, 'Release event ref does not match the selected tag.');
+            assert.equal(process.env.GITHUB_SHA, taggedCommit, 'Release event SHA must match the tagged source for provenance.');
+            const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8'));
+            assert.equal(event.release?.tag_name, tag, 'Release event tag does not match the selected tag.');
+            assert.equal(event.release?.draft, false, 'Draft releases cannot publish to npm.');
+            assert.equal(event.release?.prerelease, false, 'Prereleases cannot publish to npm.');
+          } else {
+            assert.equal(eventType, 'workflow_dispatch', 'Unexpected publishing event.');
+            assert.equal(tag, 'v1.2.0', 'Manual dispatch is limited to the pre-existing v1.2.0 release.');
+            assert.equal(process.env.GITHUB_REF, 'refs/heads/main', 'Manual bootstrap publishing must run from main.');
+            try {
+              execFileSync('git', ['merge-base', '--is-ancestor', process.env.GITHUB_SHA, 'FETCH_HEAD'], { stdio: 'ignore', timeout: 10_000 });
+            } catch {
+              throw new Error('Manual workflow commit must remain on origin/main.');
+            }
+          }
+
+          await appendFile(process.env.GITHUB_OUTPUT, `package_version=${manifest.version}\nrelease_tag=${tag}\nrelease_commit=${taggedCommit}\n`);
+          console.log(`Validated ${manifest.name}@${manifest.version} from published stable release ${tag} at ${taggedCommit}.`);
+          NODE
+
+      - name: Require npm Trusted Publishing support
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { execFileSync } from 'node:child_process';
+
+          const version = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim();
+          const [major, minor, patch] = version.split('.').map(Number);
+          assert.ok(Number.isInteger(patch), `Unexpected npm version: ${version}`);
+          assert.ok(major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1))), `npm ${version} is too old for Trusted Publishing; require npm 11.5.1 or later.`);
+          console.log(`Using npm ${version} with Trusted Publishing support.`);
+          NODE
+
+      - name: Install locked dependencies without lifecycle scripts
+        working-directory: ${{ github.workspace }}/release-source
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run clean install, tests, build, and filtered-checkout package checks
+        working-directory: ${{ github.workspace }}/release-source
+        run: npm run check:clean-install
+
+      - name: Scan the full tagged source and actual package inventory
+        working-directory: ${{ github.workspace }}/release-source
+        run: npm run check:release
+
+      - name: Audit locked runtime dependencies
+        working-directory: ${{ github.workspace }}/release-source
+        run: npm audit --package-lock-only --omit=dev --audit-level=high
+
+      - name: Validate and preserve the exact consumer-tested package archive
+        working-directory: ${{ github.workspace }}/release-source
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/npm-release"
+          node "$GITHUB_WORKSPACE/release-tooling/scripts/check-package.mjs" \
+            --project-dir "$GITHUB_WORKSPACE/release-source" \
+            --output-dir "$RUNNER_TEMP/npm-release"
+
+      - name: Upload the validated package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-release-package
+          path: |
+            ${{ runner.temp }}/npm-release/icanhcorpse-dsh-salah-*.tgz
+            ${{ runner.temp }}/npm-release/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish validated artifact using npm OIDC
+    needs: validate
+    if: github.event_name == 'release' || inputs.publish == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ needs.validate.outputs.release_tag }}
+      RELEASE_COMMIT: ${{ needs.validate.outputs.release_commit }}
+    steps:
+      - name: Check out the exact commit validated by the first job
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.release_commit }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Revalidate event context, tag target, main ancestry, and published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          test "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" = "$RELEASE_COMMIT"
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$RELEASE_COMMIT" FETCH_HEAD
+          if [[ "$GITHUB_EVENT_NAME" == release ]]; then
+            test "$GITHUB_SHA" = "$RELEASE_COMMIT"
+            test "$GITHUB_REF" = "refs/tags/$RELEASE_TAG"
+          elif [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            test "$RELEASE_TAG" = v1.2.0
+            test "$GITHUB_REF" = refs/heads/main
+            git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD
+          else
+            echo 'Unexpected npm publishing event.' >&2
+            exit 1
+          fi
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const tag = process.env.RELEASE_TAG;
+          const token = process.env.GH_TOKEN;
+          assert.ok(token, 'GitHub release metadata token is unavailable.');
+          const response = await fetch(`https://api.github.com/repos/ienugr/dsh-salah/releases/tags/${encodeURIComponent(tag)}`, {
+            headers: {
+              accept: 'application/vnd.github+json',
+              authorization: `Bearer ${token}`,
+              'x-github-api-version': '2022-11-28',
+            },
+          });
+          assert.equal(response.status, 200, `No published GitHub release exists for ${tag} (HTTP ${response.status}).`);
+          const release = await response.json();
+          assert.equal(release.tag_name, tag);
+          assert.equal(release.draft, false);
+          assert.equal(release.prerelease, false);
+          NODE
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Download the validated package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-release-package
+          path: ${{ runner.temp }}/npm-release
+
+      - name: Verify the artifact and npm client before requesting OIDC
+        env:
+          PACKAGE_VERSION: ${{ needs.validate.outputs.package_version }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/npm-release"
+          shasum -a 256 -c SHA256SUMS
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { execFileSync } from 'node:child_process';
+          import { stat } from 'node:fs/promises';
+
+          const version = process.env.PACKAGE_VERSION;
+          assert.match(version, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
+          const archive = `icanhcorpse-dsh-salah-${version}.tgz`;
+          assert.ok((await stat(archive)).isFile(), 'Validated npm tarball is missing.');
+          const npmVersion = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim();
+          const [major, minor, patch] = npmVersion.split('.').map(Number);
+          assert.ok(Number.isInteger(patch), `Unexpected npm version: ${npmVersion}`);
+          assert.ok(major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1))), `npm ${npmVersion} is too old for Trusted Publishing; require npm 11.5.1 or later.`);
+          console.log(`Verified release tarball for version ${version}; npm ${npmVersion}.`);
+          NODE
+
+      - name: Publish stable GitHub release to npm with automatic provenance
+        if: github.event_name == 'release'
+        run: >-
+          npm publish
+          "$RUNNER_TEMP/npm-release/icanhcorpse-dsh-salah-${PACKAGE_VERSION}.tgz"
+          --ignore-scripts
+          --access public
+          --registry=https://registry.npmjs.org
+        env:
+          PACKAGE_VERSION: ${{ needs.validate.outputs.package_version }}
+
+      - name: Publish the pre-existing v1.2.0 through OIDC without a misleading attestation
+        if: github.event_name == 'workflow_dispatch'
+        run: >-
+          npm publish
+          "$RUNNER_TEMP/npm-release/icanhcorpse-dsh-salah-${PACKAGE_VERSION}.tgz"
+          --ignore-scripts
+          --access public
+          --registry=https://registry.npmjs.org
+        env:
+          PACKAGE_VERSION: ${{ needs.validate.outputs.package_version }}
+          NPM_CONFIG_PROVENANCE: 'false'

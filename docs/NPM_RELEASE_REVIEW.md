@@ -4,7 +4,7 @@ Initial preparation review: **2026-11-09**; release-verification follow-up: **20
 
 ## Status: npm package prepared — NOT PUBLISHED
 
-The package was prepared on `prepare/npm-distribution` from `c1804d2`. The npm package remains unpublished; the GitHub v1.2.0 release distributes a separately validated tarball. The release page and Actions runs are authoritative for the exact tag commit and passing CI; the earlier preparation runs below are not a substitute for those checks. The original linked local checkout remains unchanged. This report does not claim npm publication or authentication, live bundle installation or local-to-scoped migration, a current browser run, or changed Harness theme/profile state.
+The package was prepared on `prepare/npm-distribution` from `c1804d2`. The npm package remains unpublished; the GitHub v1.2.0 release distributes a separately validated tarball. The repository includes a Trusted Publishing (OIDC) workflow for future stable releases and a guarded manual dispatch for this existing tag. The workflow has not been dispatched, and no npm-side trusted publisher has been configured. The release page and Actions runs remain authoritative for the exact release tag and its CI. The original linked local checkout remains unchanged. This report does not claim npm publication or authentication, live bundle installation or local-to-scoped migration, a current browser run, or changed Harness theme/profile state.
 
 An anonymous public-registry lookup returned **404** during preparation. This is evidence of no anonymous public visibility at lookup time, not proof that no private package exists or that the intended npm account is authenticated or has publishing rights.
 
@@ -14,7 +14,7 @@ An anonymous public-registry lookup returned **404** during preparation. This is
 - Supported runtime remains **Harness 0.2.1-rc.5** only; Host Node.js **>=22.15**. Other Harness versions are unvalidated.
 - The [README](<../README.md>) describes installation **after publication** through Harness Plugin Manager with the exact pinned spec and explicit public registry. Published consumers do not need cloning, a build, a global npm installation, or a nonexistent CLI.
 - The manager's returned `application`, warnings, and `nextStep` govern activation. `already-installed` is not an upgrade; a stable slot ID is not proof of newly loaded code.
-- The [publishing checklist](<PUBLISHING.md>) is manual. No publishing workflow or unattended/OIDC first publish is enabled or promised.
+- The [publishing guide](<PUBLISHING.md>) documents the OIDC workflow at `publish-npm.yml`, the `npm-publish` environment, and the account-owner trust setup. It does not imply that npm trust is configured or that any workflow was dispatched.
 
 ## Stable state and migration boundaries
 
@@ -62,9 +62,9 @@ The initial partial/failed checks were not promoted to success; the final curren
 
 ## Separate npm and live-install gates
 
-1. Authenticate directly with npm as `icanhcorpse`, establish scope/package publish permission, and review exact-version availability. Never provide credentials in chat.
-2. Only after separate explicit owner approval, perform manual npm publication using [Publishing](<PUBLISHING.md>), then confirm public access and anonymous exact-version/tarball availability. The GitHub release does not satisfy this gate.
-3. Separately authorize an actual Harness install smoke test and local-to-scoped migration, following manager lifecycle instructions without activating both names or deleting user data; record the loaded package/version and exercised behavior.
+1. Configure npm Trusted Publishing for owner `ienugr`, repository `dsh-salah`, workflow `publish-npm.yml`, and GitHub environment `npm-publish`. Verify the account has permission for `@icanhcorpse/dsh-salah`; do not disclose credentials. If npm requires an owner-controlled first-publish bootstrap because the package does not exist yet, follow current npm guidance and review that action separately.
+2. After that setup, `workflow_dispatch` from `main` with input `tag: v1.2.0` runs validation only by default. Setting `publish: true` explicitly publishes the existing tag through OIDC, with provenance disabled for that one-off because the event SHA is `main` while the package source is the older tag. Future stable releases published directly publish automatically with tag-aligned provenance; promotion from an already-published prerelease is not wired. The workflow has **not** been dispatched and the npm package remains unpublished at this review.
+3. Confirm public access and anonymous exact-version/tarball availability after publication. Separately authorize an actual Harness install smoke test and local-to-scoped migration, following manager lifecycle instructions without activating both names or deleting user data; record the loaded package/version and exercised behavior.
 4. Keep provider availability, commercial entitlement, hardware GPS/OS prompts, real storage restart, and other-runtime compatibility limits explicit. Earlier synthetic/local tests do not close these gates.
 
 This review is not a security certification, legal opinion, service licence, or guarantee of registry/provider availability.

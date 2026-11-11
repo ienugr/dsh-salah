@@ -59,7 +59,7 @@ for (const path of ['docs/images/salah-widget.webp', 'docs/images/salah-dashboar
 
 const pathLeak = /\/(?:Users|Volumes)\//;
 const secret = /gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/;
-const reviewFiles = new Set([...files, 'package-lock.json', '.github/workflows/checks.yml']);
+const reviewFiles = new Set([...files, 'package-lock.json', '.github/workflows/checks.yml', '.github/workflows/publish-npm.yml']);
 for (const path of reviewFiles) {
   if (!['.js', '.mjs', '.json', '.md', '.yml', '.yaml', '.css'].includes(extname(path))) continue;
   const content = await text(path);

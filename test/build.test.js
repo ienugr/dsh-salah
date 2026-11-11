@@ -245,7 +245,7 @@ test('release checkout includes only explicit sources, assets, scripts and tests
     }
     const destination = join(fixture, 'release checkout');
     const inventory = await copyReleaseCheckout(source, destination);
-    for (const name of ['package.json', 'package-lock.json', 'client.js', 'docs/PUBLISHING.md', 'docs/NPM_RELEASE_REVIEW.md', 'scripts/check-package.mjs', 'scripts/npm-environment.mjs', 'test/package.test.js', 'scripts/check-clean-install.mjs', 'scripts/node-cli.mjs', 'test/build.test.js', 'test/e2e/preflight.test.mjs', 'test/e2e/fixture-contract.test.mjs', 'test/e2e/theme-restoration.test.mjs', 'test/e2e/real-harness.mjs', 'test/e2e/salah-api.mjs', 'test/e2e/regressions.mjs', 'test/e2e/host-theme.mjs', 'docs/images/salah-widget.webp', 'docs/BROWSER_RESULTS.json', '.github/workflows/checks.yml']) {
+    for (const name of ['package.json', 'package-lock.json', 'client.js', 'docs/PUBLISHING.md', 'docs/NPM_RELEASE_REVIEW.md', 'scripts/check-package.mjs', 'scripts/npm-environment.mjs', 'test/package.test.js', 'scripts/check-clean-install.mjs', 'scripts/node-cli.mjs', 'test/build.test.js', 'test/e2e/preflight.test.mjs', 'test/e2e/fixture-contract.test.mjs', 'test/e2e/theme-restoration.test.mjs', 'test/e2e/real-harness.mjs', 'test/e2e/salah-api.mjs', 'test/e2e/regressions.mjs', 'test/e2e/host-theme.mjs', 'docs/images/salah-widget.webp', 'docs/BROWSER_RESULTS.json', '.github/workflows/checks.yml', '.github/workflows/publish-npm.yml']) {
       assert.ok(inventory.includes(name), `Release input is present: ${name}`);
       assert.deepEqual(await readFile(join(destination, name)), await readFile(join(source, name)));
     }
