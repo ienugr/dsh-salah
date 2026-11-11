@@ -1,10 +1,22 @@
 {
-  "name": "@local/dsh-salah",
+  "name": "@icanhcorpse/dsh-salah",
   "version": "1.2.0",
   "description": "Prayer times with a compact floating current-prayer/countdown widget, current-location detection, worldwide location search, and selectable sources.",
-  "private": true,
+  "private": false,
   "type": "module",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ienugr/dsh-salah.git"
+  },
+  "homepage": "https://github.com/ienugr/dsh-salah#readme",
+  "bugs": {
+    "url": "https://github.com/ienugr/dsh-salah/issues"
+  },
   "engines": {
     "dsh": "0.2.1-rc.5",
     "node": ">=22.15"
@@ -48,10 +60,12 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.js",
-    "check": "node --check index.js && node --check service.js && node --check core.js && node --check client.js && node --check build-ui.mjs && node --check scripts/check-release.mjs && node --check scripts/node-cli.mjs && node --check scripts/check-clean-install.mjs && node --check scripts/check-browser.mjs && node --check test/e2e/real-harness.mjs && node --check test/e2e/salah-api.mjs && node --check test/e2e/preflight.test.mjs && node --check test/e2e/fixture-contract.test.mjs && node --check test/e2e/theme-restoration.test.mjs && node --check test/e2e/regressions.mjs && node --check test/e2e/host-theme.mjs",
+    "check": "node --check index.js && node --check service.js && node --check core.js && node --check client.js && node --check build-ui.mjs && node --check scripts/check-release.mjs && node --check scripts/node-cli.mjs && node --check scripts/check-clean-install.mjs && node --check scripts/check-package.mjs && node --check scripts/npm-environment.mjs && node --check scripts/check-browser.mjs && node --check test/e2e/real-harness.mjs && node --check test/e2e/salah-api.mjs && node --check test/e2e/preflight.test.mjs && node --check test/e2e/fixture-contract.test.mjs && node --check test/e2e/theme-restoration.test.mjs && node --check test/e2e/regressions.mjs && node --check test/e2e/host-theme.mjs",
     "build:ui": "node build-ui.mjs",
     "check:release": "node scripts/check-release.mjs",
     "check:clean-install": "node scripts/check-clean-install.mjs",
+    "check:package": "node scripts/check-package.mjs",
+    "prepublishOnly": "npm run check:release && npm run check:package",
     "check:browser": "node scripts/check-browser.mjs",
     "test:e2e:preflight": "node --test test/e2e/*.test.mjs"
   },

@@ -1,42 +1,27 @@
 /* Read-only release validation. Does not publish, install, or modify the profile. */
 import assert from 'node:assert/strict';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
-import { npmCommand } from './node-cli.mjs';
 import vm from 'node:vm';
-import { MANDATORY_CHECKS } from '../test/e2e/regressions.mjs';
+import { previewPackageInventory, validateManifest, validateHistoricalEvidence, validatePackageDirectory } from './check-package.mjs';
+import { verificationFailureExitCode } from './check-clean-install.mjs';
+
+try {
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const text = path => readFile(resolve(root, path), 'utf8');
-const manifest = JSON.parse(await text('package.json'));
+const manifest = validateManifest(JSON.parse(await text('package.json')));
 const lock = JSON.parse(await text('package-lock.json'));
 assert.equal(lock.version, manifest.version, 'Lockfile version must match the manifest.');
 assert.equal(lock.packages[''].version, manifest.version, 'Root lock entry must match the manifest.');
-assert.equal(manifest.license, 'MIT');
-assert.equal(manifest.private, true, 'This release is a private npm package distributed as a local GitHub bundle.');
-assert.equal(manifest.name, '@local/dsh-salah');
-assert.ok(manifest.engines.dsh && manifest.engines.node, 'Declare Harness and Node compatibility.');
-
-const packCommand = npmCommand(['pack', '--dry-run', '--json', '--ignore-scripts']);
-const packed = spawnSync(packCommand.file, packCommand.args, { cwd: root, encoding: 'utf8', timeout: 60000, maxBuffer: 2 * 1024 * 1024, shell: false });
-assert.equal(packed.status, 0, packed.error?.message || packed.stderr || 'Package preview failed.');
-const [inventory] = JSON.parse(packed.stdout);
+assert.equal(lock.name, manifest.name, 'Lockfile name must match the npm identity.');
+assert.equal(lock.packages[''].name, manifest.name, 'Root lock name must match the npm identity.');
+const inventory = await previewPackageInventory(root);
 const files = new Set(inventory.files.map(file => file.path));
-const required = ['index.js', 'service.js', 'core.js', 'client.js', 'cordis.patch.yml', 'locale/en.json', 'locale/id.json', 'icon.svg', 'README.md', 'LICENSE', 'PRIVACY.md', 'SECURITY.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'THIRD_PARTY_NOTICES.md', 'docs/RELEASE_REVIEW.md', 'docs/HOST_THEME_CONTRACT.json', 'docs/BROWSER_RESULTS.json', 'docs/images/salah-widget.webp', 'docs/images/salah-dashboard.webp', 'scripts/check-release.mjs', 'scripts/node-cli.mjs', 'scripts/check-clean-install.mjs', 'scripts/check-browser.mjs', 'test/e2e/preflight.test.mjs', 'test/e2e/fixture-contract.test.mjs', 'test/e2e/theme-restoration.test.mjs', 'test/e2e/real-harness.mjs', 'test/e2e/salah-api.mjs', 'test/e2e/regressions.mjs', 'test/e2e/host-theme.mjs'];
-for (const path of required) assert.ok(files.has(path), `Missing packed resource: ${path}`);
-// Validate the recorded evidence, not a new browser execution or certification.
-const browserRecord = JSON.parse(await text('docs/BROWSER_RESULTS.json'));
-assert.equal(browserRecord.package, manifest.name);
-assert.equal(browserRecord.version, manifest.version, 'Browser record must identify this package version.');
-assert.equal(browserRecord.status, 'PASSED');
-assert.equal(browserRecord.browserTestsRun, true);
-assert.equal(browserRecord.exitCode, 0);
-assert.deepEqual(browserRecord.checks.map(item => item.name), MANDATORY_CHECKS, 'Recorded browser evidence must include every mandatory case exactly once.');
-assert.ok(browserRecord.checks.every(item => item.status === 'PASSED'));
-assert.deepEqual(browserRecord.unverifiedMandatoryCases, []);
-for (const key of ['capturedCurrentSavedChoiceBeforeChanges', 'httpResponsesFinishedSuccessfully', 'rpcCorrelationAndLogicalSuccessVerified', 'namespacePreferenceAndRevisionFloorsVerified', 'independentFreshReadAfterOriginalTabClosed', 'savedAndSelectedSourceRestored', 'htmlIndicatorAndBodyThemeStateRestored']) assert.equal(browserRecord.themeVerification[key], true, `Missing recorded restoration proof: ${key}`);
+const { documentationLinks: links } = await validatePackageDirectory(root, { expectedManifest: manifest, inventory });
+// This is preserved historical evidence, not a browser execution of the new npm identity.
+const provenance = validateHistoricalEvidence(JSON.parse(await text('docs/BROWSER_RESULTS.json')));
 for (const path of files) assert.ok(!/(?:^|\/)(?:node_modules|\.git|\.env(?:\.[^/]*)?|coverage)(?:\/|$)|\.tgz$/.test(path), `Unexpected private/generated package entry: ${path}`);
 for (const path of Object.values(manifest.exports)) {
   if (!path.includes('*')) assert.ok(files.has(path.replace(/^\.\//, '')), `Missing export: ${path}`);
@@ -74,7 +59,6 @@ for (const path of ['docs/images/salah-widget.webp', 'docs/images/salah-dashboar
 
 const pathLeak = /\/(?:Users|Volumes)\//;
 const secret = /gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/;
-let links = 0;
 const reviewFiles = new Set([...files, 'package-lock.json', '.github/workflows/checks.yml']);
 for (const path of reviewFiles) {
   if (!['.js', '.mjs', '.json', '.md', '.yml', '.yaml', '.css'].includes(extname(path))) continue;
@@ -84,24 +68,18 @@ for (const path of reviewFiles) {
   // Tests may contain subprocess source strings resolved against a fixture cwd;
   // validate the shipped runtime/build/browser helpers rather than those strings.
   if (['.js', '.mjs'].includes(extname(path)) && !/\.test\.(?:js|mjs)$/.test(path)) {
-    for (const match of content.matchAll(/(?:from\s*|import\s*\()\s*['"](\.{1,2}\/[^'"]+)['"]/g)) {
+    for (const match of content.matchAll(/\b(?:from\s*|import\s*(?:\(\s*)?)['"](\.{1,2}\/[^'"]+)['"]/g)) {
       const imported = resolve(root, dirname(path), match[1]);
       assert.ok(imported.startsWith(root + sep), `Relative import leaves release package: ${path}`);
       const relative = imported.slice(root.length + 1).split(sep).join('/');
       assert.ok(files.has(relative), `Relative import is not packed: ${path} -> ${match[1]}`);
     }
   }
-  if (!path.endsWith('.md')) continue;
-  for (const match of content.matchAll(/!?\[[^\]]*\]\((?:<([^>]+)>|([^\s)]+))(?:\s+"[^"]*")?\)/g)) {
-    const destination = match[1] || match[2];
-    if (/^(?:https?:|mailto:|#)/i.test(destination)) continue;
-    const local = decodeURIComponent(destination.split('#')[0]);
-    if (!local) continue;
-    const absolute = resolve(root, dirname(path), local);
-    assert.ok(absolute === root || absolute.startsWith(root + sep), `Documentation link leaves the project: ${path}`);
-    assert.ok(await stat(absolute).catch(() => null), `Broken link in ${path}: ${destination}`);
-    links++;
-  }
 }
 console.log(`Release checks passed: ${manifest.name}@${manifest.version}, ${files.size} packed files, ${links} local documentation links, ${Object.keys(dictionaries.EN).length} translated interface keys.`);
-console.log('This is a release-content check, not a security certification or proof of external API availability.');
+console.log(`Browser provenance: historical ${provenance.package}@${provenance.version}, ${provenance.verifiedOn} only; current npm package runtime/UI was not live-retested.`);
+console.log('This is a release-content check, not a new browser execution, security certification, registry-availability claim or proof of external API availability.');
+} catch (error) {
+  console.error(error.message);
+  process.exitCode = verificationFailureExitCode(error);
+}

@@ -11,14 +11,22 @@ npm ci --ignore-scripts
 npm run build:ui
 npm run check
 npm test
-npm run check:release
 npm run test:e2e:preflight
-npm run check:clean-install
+npm run check:release
 ```
 
 The builder resolves Tailwind’s exported manifest/bin and invokes its JavaScript entry point with Node, without `.bin`, `.cmd`, or shell wrappers. Regression tests execute the real compiler from paths containing spaces and compare repeated build bytes. npm checks likewise invoke npm’s JavaScript entry point directly.
 
-The local execution environment is macOS. GitHub Actions is configured for Ubuntu with Node 22.15/24 and native Windows with Node 24. A configured CI lane is not a passing remote run; review actual Actions results before release. End users use the included client artifact and do not need the UI build step.
+The local execution environment is macOS. GitHub Actions is configured for Ubuntu with Node 22.15/24 and native Windows with Node 24. [Run 42555380585](https://github.com/ienugr/dsh-salah/actions/runs/42555380585) succeeded in all three lanes for the prior main baseline `c1804d2` on November 9; this does not validate the uncommitted npm-preparation worktree. Review actual results for the release revision. End users use the included client artifact and do not need the UI build step.
+
+For final distribution validation, also run:
+
+```sh
+npm run check:clean-install
+npm run check:package
+```
+
+The clean-install gate repeats syntax, Node tests, browser-free preflight, release-content checks, and the build in an isolated copy. It can replace a redundant standalone rerun of those checks; retain actual outcomes rather than counting repeated executions as extra coverage. The package gate validates a real tarball as a consumer artifact, not a registry publication or a live Harness install. See [Publishing](<docs/PUBLISHING.md>) for the manual owner checklist and [the npm review](<docs/NPM_RELEASE_REVIEW.md>) for current status.
 
 The lockfile is included for reproducible development. Do not use `npm audit fix --force` or broaden the Harness engine requirement without reviewing and testing the resulting changes.
 
@@ -33,6 +41,12 @@ The lockfile is included for reproducible development. Do not use `npm audit fix
 | [styles.css](styles.css) and [ui.css](ui.css) | Authored styles and daisyUI build configuration. |
 | [build-ui.mjs](build-ui.mjs) | Scoped, Harness-themed client stylesheet generation. |
 | [test](test/) | Provider, service, and pure client-logic regression tests. |
+
+## Package identity and user data
+
+The public target is `@icanhcorpse/dsh-salah@1.2.0`; publication is pending. GitHub stays [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). Keep package, lockfile, patch package references, and client loader identity consistent, but preserve existing service/row/slot IDs, storage domain `salah_preferences` version `1`, and `dsh.salah.floating.v1` / `dsh.salah.review.v1` browser keys. Never treat a package rename as permission to reset preferences or credentials.
+
+Do not install both old and new package names into one profile. Use the [README migration](<README.md#migrate-from-localdsh-salah>) and the Plugin Manager's lifecycle result; no hand-edited profile files or profile package-manager commands. The current preparation did not migrate or reinstall the live plugin. Unchanged slot registrations do not establish that a new module generation loaded.
 
 ## Interface changes
 
@@ -68,9 +82,11 @@ Do not change provider URLs, privacy behavior, or request limits as incidental r
 
 Node tests use synthetic credentials, controlled provider responses, local calculations, and real bounded subprocesses. They cover cancellation, persistence, authentication boundaries, legacy preferences, commercial/public endpoint selection, credential-safe results/caches, countdown/current-prayer/setup logic, and portable build/cleanup behavior. They do not prove future API availability or a paid key’s entitlement.
 
-`npm run check:clean-install` copies an explicit release-file allowlist into a unique temporary directory with spaces in its path. It excludes dependencies, environment files, Git state, and runtime storage; uses isolated npm configuration/cache/logs; installs from the lockfile with scripts disabled; runs syntax, Node, browser-free preflight, and release-content checks; rebuilds; and compares the client artifact before guarded cleanup. This validates a fresh dependency checkout, not a fresh authenticated Harness profile or a remote Windows/CI run.
+`npm run check:clean-install` copies an explicit release-file allowlist into a unique temporary directory with spaces in its path. It excludes dependencies, environment files, Git state, and runtime storage; uses isolated npm configuration/cache/logs; installs from the lockfile with scripts disabled; runs syntax, Node, browser-free preflight, and release-content checks; rebuilds; runs one actual packed-tarball production-only consumer install/import; and compares the client artifact before guarded cleanup. This validates a fresh dependency checkout, not a fresh authenticated Harness profile or a remote Windows/CI run.
 
 ### Real-Harness browser regressions
+
+The unchanged [browser record](<docs/BROWSER_RESULTS.json>) is historical: November 8, `@local/dsh-salah@1.2.0`, Chrome 156 / Harness 0.2.1-rc.5, 16 passing cases. It is not evidence of a new browser run or npm install for the renamed package. The npm-preparation work performed no browser/CDP or theme operations. The commands below are reference instructions for a separately authorized future run.
 
 The browser runner attaches only to an explicitly authorized, already-open Chromium CDP endpoint. It does not launch a browser, inspect personal browser profiles, copy cookies/tokens, or start a replacement application.
 

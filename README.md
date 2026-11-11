@@ -1,12 +1,14 @@
 # Salah for DeepSeek Harness
 
+> **Two distribution options:** use the [GitHub `v1.2.0` bundle](#install-the-github-release-bundle) once the release is published, or use the npm instructions only when `@icanhcorpse/dsh-salah@1.2.0` is publicly available on npm. A GitHub release does not publish to npm. The [local-checkout fallback](#local-checkout-fallback) remains available.
+
 Daily prayer times, a live countdown, and a compact floating widget—right inside your workspace.
 
 Salah is a DeepSeek Harness plugin for following the five daily prayers. Choose a prayer-time source, use your current location or select a city, and keep the next prayer in view while you work.
 
 ![Floating Salah widget showing the current prayer, its start time, and the countdown to the next prayer](docs/images/salah-widget.webp)
 
-[Getting started](#getting-started) · [Prayer-time sources](#prayer-time-sources) · [Privacy](PRIVACY.md) · [Contributing](CONTRIBUTING.md) · [License](LICENSE)
+[Install and set up](#getting-started) · [Prayer-time sources](#prayer-time-sources) · [Privacy](<PRIVACY.md>) · [Contributing](<CONTRIBUTING.md>) · [Publishing](<docs/PUBLISHING.md>) · [License](<LICENSE>)
 
 ## Features
 
@@ -35,33 +37,90 @@ The supplied screenshots show the earlier 1.1 pre-release interface using MyQura
 ### Requirements
 
 - **DeepSeek Harness 0.2.1-rc.5**, the currently declared and tested runtime version.
-- **Node.js 22.15 or later** and npm to install dependencies.
+- **Node.js 22.15 or later** on the Harness Host. A local-checkout installation also needs npm.
 - A Harness Web interface. The floating widget stays within Harness; it is not a desktop always-on-top window.
 - Internet access for online schedules and city search. Local calculations work without a prayer-time API once a location and time zone are known.
 
 Other Harness versions have not been validated. Do not bypass a compatibility warning without checking the relevant APIs.
 
-### Install from this repository
+### Install the GitHub release bundle
 
-1. Clone or download this repository, then open a terminal in the plugin directory.
-2. Install its runtime dependencies:
+After [GitHub release `v1.2.0`](https://github.com/ienugr/dsh-salah/releases/tag/v1.2.0) is published, use its npm-compatible tarball. It contains the built interface; no clone, global installation or local build is needed. The Host still needs internet access to resolve its runtime dependencies.
 
-   ```sh
-   npm ci --omit=dev --ignore-scripts
-   ```
+Copy this request into Harness:
 
-3. In Harness, ask the agent to install the bundle from the **absolute path** of that directory using `plugin_manager` with `action: install_bundle`. For example, adapt this request to your checkout:
+> Install the Salah bundle from `https://github.com/ienugr/dsh-salah/releases/download/v1.2.0/icanhcorpse-dsh-salah-1.2.0.tgz` using `plugin_manager` with `action: "install_bundle"` and `registry: "https://registry.npmjs.org"`. First list installed bundles. If `@local/dsh-salah` is installed, stop and follow the migration below rather than activating both names. Report the returned application status, warnings and next step.
 
-   > Install the Salah plugin from the absolute path to my local checkout using the Harness Plugin Manager.
+The exact tool call is:
 
-4. Follow the Plugin Manager’s refresh or restart instructions, then open **Prayer times** in the sidebar.
-5. Select a prayer-time source. For current location, explicitly select **Use current location** to request browser permission; alternatively, choose a city or enter coordinates. MyQuran requires a city from its own directory.
-6. Review the displayed source, location/time zone, and calculation method. For MyQuran, review its provider-controlled timetable and the separate offline fallback settings.
-7. Check all three setup-review acknowledgements, then select **Confirm reviewed setup**. The page remains a labeled preview until review; the floating widget and dock ask you to finish setup instead of presenting an unreviewed countdown.
+```json
+{
+  "action": "install_bundle",
+  "target": "https://github.com/ienugr/dsh-salah/releases/download/v1.2.0/icanhcorpse-dsh-salah-1.2.0.tgz",
+  "registry": "https://registry.npmjs.org"
+}
+```
 
-The client assets are included in the repository, so an end user does not need to build the interface. A local-directory installation links to the checkout: keep that directory available while the plugin is installed.
+For manual download, obtain the tarball and `SHA256SUMS` from the release assets, verify the SHA-256 digest, then give Plugin Manager the tarball's absolute path. Follow all activation/restart/refresh instructions. This release artifact is validated by isolated Node consumer tests; a live installation of the renamed package is a separate check, not an implied result.
 
-This repository is prepared for **GitHub distribution as a local Harness bundle**, not publication to the npm registry. The internal package identifier is `@local/dsh-salah`, and the package is intentionally marked `private`.
+### Install from npm — after publication
+
+Use the **Harness Plugin Manager**, not a global npm installation. No cloning or build is needed for the published package. Salah is a Harness bundle, not a command-line program; there is no `npx` CLI.
+
+Copy this request into Harness **after the public package is available**:
+
+> Install Salah with `plugin_manager`: use `action: "install_bundle"`, `target: "@icanhcorpse/dsh-salah@1.2.0"`, and `registry: "https://registry.npmjs.org"`. First list installed bundles and check for an existing Salah installation. Do not activate both `@local/dsh-salah` and `@icanhcorpse/dsh-salah`; if the local bundle is installed, stop and follow the documented migration. Report the returned application status, warnings, and any next step.
+
+The installation call uses these tool fields:
+
+```json
+{
+  "action": "install_bundle",
+  "target": "@icanhcorpse/dsh-salah@1.2.0",
+  "registry": "https://registry.npmjs.org"
+}
+```
+
+Follow the returned `application`, warnings, and `nextStep` when supplied. A saved installation is not necessarily live: complete any requested Host restart or page refresh, then open **Prayer times**. Do not bypass compatibility or build-script approval warnings.
+
+### First setup
+
+1. Select **AlAdhan**, **MyQuran**, or **Adhan**.
+2. Choose a city or enter coordinates and a time zone. To use GPS, explicitly select **Use current location** and grant browser permission; Salah never requests it on its own. MyQuran requires a city selected from its own directory.
+3. Review the source, location/time zone, and method. MyQuran controls its published timetable; its method/Asr settings are for offline fallback only.
+4. Check **all three** setup acknowledgements, then select **Confirm reviewed setup**. Until then the page is a preview and the widget/dock asks you to finish setup.
+
+### Existing installations, updates, and removal
+
+Use the Plugin Manager to list installed bundles and identify the **exact package name and version**. There is no separate upgrade operation in the supported manager contract. If an installation reports `already-installed`, follow its `nextStep` rather than assuming the new version loaded. When instructed to replace a version, explicitly remove only that exact bundle through the manager, then install the intended pinned version. Bundle removal is not a request to erase settings or files.
+
+To remove Salah, ask the Plugin Manager to remove the exact installed bundle (`action: "remove_bundle"`, `target` set to the name from its bundle list). Follow its unload/restart/refresh instructions. Do not use `npm uninstall -g`, edit profile files, or run package-manager commands in the Harness profile. Removal does **not** guarantee data erasure; see [Privacy](<PRIVACY.md>).
+
+#### Migrate from `@local/dsh-salah`
+
+Use the validated tarball after the GitHub release is published, or wait until npm publication and public availability are verified. The two package names use the same service, storage domain, and registration/row IDs; installing both can conflict.
+
+1. Have the Plugin Manager list installed bundles and confirm the exact old name `@local/dsh-salah`.
+2. Remove **only that bundle** through the manager. Do not delete its settings, browser data, or checkout. Complete any requested restart or refresh so the old generation is fully unloaded.
+3. Install the `@icanhcorpse/dsh-salah@1.2.0` bundle using the GitHub tarball request above, or the npm request after npm publication. Follow the returned lifecycle instructions and verify the loaded package/version in the manager, then check **Prayer times** and setup review. An unchanged slot ID alone does not prove that the new code loaded.
+
+The rename keeps storage domain `salah_preferences` at version `1` and browser keys `dsh.salah.floating.v1` and `dsh.salah.review.v1` stable. Reuse of Host preferences assumes the same Harness profile and storage backend; browser view state also requires the same browser storage and origin. The rename does not intentionally reset manual preferences or Host credentials. Existing privacy normalization may already have removed legacy saved current-GPS records; this is not a promise of byte-for-byte preservation of every old record. Keep the local checkout until its linked bundle is fully unloaded and the replacement is verified. See [Privacy](<PRIVACY.md>) for persistence boundaries.
+
+### Local-checkout fallback
+
+The source repository remains [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). To use its included client assets without building:
+
+```sh
+git clone https://github.com/ienugr/dsh-salah.git
+cd dsh-salah
+npm ci --omit=dev --ignore-scripts
+```
+
+Then ask Harness:
+
+> Use `plugin_manager` with `action: "install_bundle"` and `target` set to the absolute path of my Salah checkout. First list bundles and avoid installing a second Salah bundle alongside an existing one. Follow the returned application status, warnings, and restart/refresh instructions.
+
+The manager reads the package name from the checkout; a repository revision may still use the old local name. A directory installation links to that checkout, so keep it available and unchanged while installed. Use [the first-setup steps](#first-setup) afterward. This fallback is not evidence of an npm registry installation.
 
 ### Use the floating widget
 
@@ -150,17 +209,9 @@ Widget positioning, visibility, and setup acknowledgement are browser view contr
 
 ## Development
 
-```sh
-npm ci --ignore-scripts
-npm run build:ui
-npm run check
-npm test
-npm run check:release
-npm run test:e2e:preflight
-npm run check:clean-install
-```
+See [Contributing](<CONTRIBUTING.md>) for full development dependencies, builds, and tests. The [npm release review](<docs/NPM_RELEASE_REVIEW.md>) separates current packaging checks from the [historical November 8 browser result](<docs/BROWSER_RESULTS.json>) for `@local/dsh-salah` (16 cases) and [its release review](<docs/RELEASE_REVIEW.md>). Those earlier results are not a browser or registry-install pass for the renamed package.
 
-See [Contributing](CONTRIBUTING.md) for the build workflow, [the executed 16-case browser summary](docs/BROWSER_RESULTS.json), and [the release review](docs/RELEASE_REVIEW.md) for verification results and remaining publication steps. Changes should be tested in Harness, not in a standalone imitation of its interface.
+Maintainers publish manually using [Publishing](<docs/PUBLISHING.md>). No live migration was performed during npm preparation; the original linked checkout remains running unchanged. Commit, push, and publication are separate owner actions.
 
 ## License and acknowledgments
 

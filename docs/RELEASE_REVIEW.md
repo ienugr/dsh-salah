@@ -1,8 +1,12 @@
-# Public release and improvement review
+# Historical local-bundle release and improvement review
 
-Review date: **2026-11-08**. Target: **Salah 1.2.0**, distributed as a public GitHub checkout/local DeepSeek Harness bundle.
+> **npm preparation update — 2026-11-09:** `@icanhcorpse/dsh-salah@1.2.0` is **prepared, not published**. See [the npm release review](<NPM_RELEASE_REVIEW.md>) for the renamed package's actual validation status and [Publishing](<PUBLISHING.md>) for manual owner steps. No live migration, registry install, or new browser run was performed during npm preparation. The original linked checkout remains running unchanged.
 
-**All six improvements are implemented, and the final local/browser gates passed.** The [executed browser summary](BROWSER_RESULTS.json) records the current 16-case result. Remote CI, paid-service entitlement, and a fresh authenticated Harness profile/storage restart remain separate, unexecuted checks. No GitHub repository, push, tag, or npm publication was performed by the implementation session.
+Review date: **2026-11-08**. Historical target: **`@local/dsh-salah@1.2.0`**, distributed as a GitHub checkout/local DeepSeek Harness bundle. Unless explicitly updated below, this document describes that earlier execution, not the uncommitted npm-preparation worktree.
+
+**All six improvements were implemented, and the final local/browser gates passed for that historical target.** The unchanged [executed browser summary](<BROWSER_RESULTS.json>) records the November 8 Chrome/Harness **16-case** result under the old package name. It is not a new GUI or registry-install pass for `@icanhcorpse/dsh-salah`. Paid-service entitlement and a fresh authenticated Harness profile/storage restart remain unexecuted checks. No GitHub repository, push, tag, or npm publication was performed by the November 8 implementation session.
+
+A later recorded baseline, [GitHub Actions run 42555380585](https://github.com/ienugr/dsh-salah/actions/runs/42555380585), succeeded in all three lanes for main commit **`c1804d2`** on November 9 (Ubuntu Node 22.15/24 and Windows Node 24). That is prior-main evidence only; the new npm worktree has not been pushed or run in new remote CI. The browser JSON retains its original snapshot, including its then-unexecuted CI note.
 
 This review is not a security certification, legal opinion, commercial service licence, or guarantee of provider availability.
 
@@ -70,10 +74,10 @@ The footer is a content-sized inline prayer name and short countdown, without re
 
 ## Remaining external gates
 
-- **GitHub CI:** [the workflow](../.github/workflows/checks.yml) defines Ubuntu Node 22.15.0/24 and native Windows Node 24 clean-install/audit lanes. It has not run remotely because the repository was not created or pushed by this session. Review real CI results before tagging.
+- **GitHub CI:** [the source workflow](https://github.com/ienugr/dsh-salah/blob/main/.github/workflows/checks.yml) defines Ubuntu Node 22.15.0/24 and native Windows Node 24 clean-install/audit lanes. The November 8 session had not run it remotely. The later `c1804d2` baseline succeeded as noted above; new npm-preparation changes still require their own remote result before any new CI claim.
 - **Commercial service:** configured-key metadata proves only credential presence, not subscription validity or entitlement. No real key was read or used for testing.
 - **Profile/storage lifecycle:** isolated dependency installation is not a fresh authenticated Harness profile or a real storage restart.
-- **Publication:** publish the plugin directory as repository root, keeping the lockfile, generated client, notices, tests and workflow. Exclude dependency directories, environment files, runtime storage, raw logs, archives, tokens and CDP WebSocket URLs. Enable private vulnerability reporting or a real private contact channel.
+- **Publication:** npm publication is still pending; follow [the current manual checklist](<PUBLISHING.md>) rather than treating the old local-bundle review as publication approval. Preserve the lockfile, generated client, notices, tests and workflow in source. Exclude dependency directories, environment files, runtime storage, raw logs, archives, tokens and CDP WebSocket URLs from public artifacts. Enable private vulnerability reporting or a real private contact channel.
 - **Service terms and screenshots:** preserve attribution/licensing notices and confirm the example-city screenshots remain appropriate for publication. The supplied images show the earlier pre-release interface, not every current control.
 
 No unexecuted CI, paid-service, storage-restart, OS or publication step should be represented as complete merely because its script exists.

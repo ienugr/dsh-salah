@@ -1,6 +1,16 @@
 # Changelog
 
-## 1.2.0 — Unreleased
+## 1.2.0 — 2026-11-09
+
+GitHub distribution uses the validated `icanhcorpse-dsh-salah-1.2.0.tgz` bundle and SHA-256 checksums. The public npm target is `@icanhcorpse/dsh-salah@1.2.0`; npm publication remains a separate owner action. The source repository remains [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). No npm registry install or live local-to-scoped migration is implied.
+
+### npm distribution preparation
+
+- Prepared the public scoped package identity, repository metadata, and public publish configuration; kept version `1.2.0`.
+- Documented post-publication installation through Harness Plugin Manager, safe exact-name local-bundle migration/removal, and a no-build local-checkout fallback in the [README](<README.md>).
+- Preserved storage domain `salah_preferences` version `1`, existing service/row/slot identifiers, and `dsh.salah.*` browser view keys. Existing privacy normalization remains in effect; this is not a promise to restore legacy saved GPS records.
+- Added a [manual owner publishing checklist](<docs/PUBLISHING.md>) and [npm validation review](<docs/NPM_RELEASE_REVIEW.md>), separating real tarball checks from publication and live installation.
+- Retained the unchanged [November 8 browser record](<docs/BROWSER_RESULTS.json>) for `@local/dsh-salah`. Its 16 passing cases and the later `c1804d2` main CI baseline are historical evidence, not new renamed-package GUI or CI results.
 
 ### Added
 
@@ -19,7 +29,7 @@
 - Added supplied screenshots of the floating widget and full prayer-times page.
 - Added release validation and a continuous-integration configuration.
 
-These entries describe local release preparation; no GitHub release or npm publication is implied.
+The GitHub release and its assets are published separately after the exact commit passes CI. npm publication and live scoped-package installation are not implied by that release.
 
 ## 1.1.0 — 2026-11-05
 
