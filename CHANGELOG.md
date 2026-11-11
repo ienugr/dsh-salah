@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 — 2026-11-09
+## 1.2.0 — 2026-11-11
 
 GitHub distribution uses the validated `icanhcorpse-dsh-salah-1.2.0.tgz` bundle and SHA-256 checksums. The public npm target is `@icanhcorpse/dsh-salah@1.2.0`; npm publication remains a separate owner action. The source repository remains [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). No npm registry install or live local-to-scoped migration is implied.
 
@@ -10,7 +10,7 @@ GitHub distribution uses the validated `icanhcorpse-dsh-salah-1.2.0.tgz` bundle 
 - Documented post-publication installation through Harness Plugin Manager, safe exact-name local-bundle migration/removal, and a no-build local-checkout fallback in the [README](<README.md>).
 - Preserved storage domain `salah_preferences` version `1`, existing service/row/slot identifiers, and `dsh.salah.*` browser view keys. Existing privacy normalization remains in effect; this is not a promise to restore legacy saved GPS records.
 - Added a [manual owner publishing checklist](<docs/PUBLISHING.md>) and [npm validation review](<docs/NPM_RELEASE_REVIEW.md>), separating real tarball checks from publication and live installation.
-- Retained the unchanged [November 8 browser record](<docs/BROWSER_RESULTS.json>) for `@local/dsh-salah`. Its 16 passing cases and the later `c1804d2` main CI baseline are historical evidence, not new renamed-package GUI or CI results.
+- Retained the unchanged [November 8 browser record](<docs/BROWSER_RESULTS.json>) for `@local/dsh-salah`. Its 16 passing cases are historical local-package UI evidence, not a renamed-package GUI test. CI for the tagged release commit is linked from the GitHub release and validates the declared cross-platform gates, not live Harness UI.
 
 ### Added
 

@@ -1,6 +1,6 @@
 # Publishing Salah to npm
 
-**Preparation snapshot — 2026-11-09: prepared, not published.** The intended first public package is `@icanhcorpse/dsh-salah@1.2.0`. The npm account is `icanhcorpse`; the source repository remains [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). Changing the npm scope does not change GitHub ownership.
+**Preparation snapshot — 2026-11-09: npm package prepared, not published to npm.** The GitHub `v1.2.0` tarball release is a separate distribution; it does not publish the npm package. The intended first public npm package is `@icanhcorpse/dsh-salah@1.2.0`. The npm account is `icanhcorpse`; the source repository remains [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). Changing the npm scope does not change GitHub ownership.
 
 This is an **owner-run manual checklist**, not authorization for an agent or CI to publish, authenticate, alter a live profile, or migrate an installation. No GitHub publishing workflow is enabled. No unattended publication or first-publish OIDC setup is assumed.
 

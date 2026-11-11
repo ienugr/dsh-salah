@@ -1,10 +1,10 @@
 # npm distribution preparation review
 
-Review date: **2026-11-09**. Target: **`@icanhcorpse/dsh-salah@1.2.0`** on `https://registry.npmjs.org`, with public access. Source repository: [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah).
+Initial preparation review: **2026-11-09**; release-verification follow-up: **2026-11-11**. Target: **`@icanhcorpse/dsh-salah@1.2.0`** on `https://registry.npmjs.org`, with public access. Source repository: [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah).
 
-## Status: PREPARED — NOT PUBLISHED
+## Status: npm package prepared — NOT PUBLISHED
 
-The preparation snapshot was validated on branch `prepare/npm-distribution`, based on `c1804d2`, before any preparation commit or push. The owner subsequently approved committing/pushing the reviewed changes, fast-forwarding remote `main` after passing CI, and creating GitHub release `v1.2.0`. The release page and Actions runs provide those exact commit/CI/publication outcomes; the earlier preparation results below are not a substitute. The original linked local checkout remains unchanged. npm publication, live bundle installation, local-to-scoped migration, browser/CDP runs, theme changes, credential actions and npm authentication are not part of the GitHub release operation.
+The package was prepared on `prepare/npm-distribution` from `c1804d2`. The npm package remains unpublished; the GitHub v1.2.0 release distributes a separately validated tarball. The release page and Actions runs are authoritative for the exact tag commit and passing CI; the earlier preparation runs below are not a substitute for those checks. The original linked local checkout remains unchanged. This report does not claim npm publication or authentication, live bundle installation or local-to-scoped migration, a current browser run, or changed Harness theme/profile state.
 
 An anonymous public-registry lookup returned **404** during preparation. This is evidence of no anonymous public visibility at lookup time, not proof that no private package exists or that the intended npm account is authenticated or has publishing rights.
 
@@ -32,14 +32,14 @@ State reuse assumes the same Harness profile and storage backend; browser view s
 | --- | --- |
 | [November 8 browser record](<BROWSER_RESULTS.json>) | Historical **16/16 PASS** for **`@local/dsh-salah@1.2.0`**, Chrome 156.0.8078.81, Harness 0.2.1-rc.5 on macOS arm64. Actual Harness UI with controlled Salah API fixtures, not full live-provider/network coverage. The JSON remains unchanged and is not a browser pass for the renamed npm package. |
 | [November 8 release review](<RELEASE_REVIEW.md>) | Historical local/build/browser detail and limits. Its counts are not current npm-worktree test counts. |
-| [Prior GitHub Actions run 42555380585](https://github.com/ienugr/dsh-salah/actions/runs/42555380585) | Recorded prior baseline for main commit **`c1804d2`**, November 9: all three lanes succeeded (Ubuntu Node 22.15/24 and Windows Node 24). This does not validate the uncommitted npm-preparation worktree. The historical browser JSON's CI note describes its November 8 snapshot, not this later run. |
-| Renamed-package local gates | **Passed on macOS arm64 / Node 24.15.0 / npm 11.12.1:** 137 Node tests, 55 browser-free tests, dependencyless bootstrap, fresh clean install/build, and actual tarball production-only consumer install/import. These are not live Harness or public-registry installation results. |
+| [Prior GitHub Actions run 42555380585](https://github.com/ienugr/dsh-salah/actions/runs/42555380585) | Historical baseline for main commit **`c1804d2`**, November 9. It predates this scoped-package release work. The browser JSON's CI note describes its November 8 snapshot, not this later baseline. |
+| Renamed-package local gates | **Passed on macOS arm64 / Node 26.13.0 / npm 11.20.0 (November 11):** 137 Node tests, 55 browser-free tests, dependencyless bootstrap, fresh clean install/build, and actual tarball production-only consumer install/import. These are not live Harness or public-registry installation results. |
 | Public npm publication/access | **Not performed / not verified.** Anonymous lookup was 404. |
 | Actual scoped registry install and fresh browser smoke | **Not performed.** Existing live UI and unchanged registration IDs do not substitute for this check. |
 
 ## Current npm-worktree validation log
 
-Executed on November 9 with **macOS arm64, Node.js 24.15.0 and npm 11.12.1** after the code freeze. The counts below come from current-worktree runs, not the historical browser record. The complete clean-install/consumer integration and standalone Node/browser-free/release checks exited 0; no tests failed or were skipped.
+Revalidated on **November 11, macOS arm64, Node.js 26.13.0 and npm 11.20.0** after the release-document updates. The counts below come from current-worktree runs, not the historical browser record. The complete clean-install/consumer integration and standalone Node/browser-free/release checks exited 0; no tests failed or were skipped.
 
 | Gate | Current result |
 | --- | --- |
@@ -58,14 +58,13 @@ Executed on November 9 with **macOS arm64, Node.js 24.15.0 and npm 11.12.1** aft
 - Independent review reproduced nested POSIX subprocess groups surviving an outer timeout. Cleanup now verifies owned PID/PPID/PGID metadata, freezes and captures owned descendants, terminates children first, and confirms disappearance before returning. Real nested timeout and abort regressions pass. No command-line, environment, profile or unrelated-process data is inspected for this cleanup.
 - Unconfirmed teardown fails closed using reserved verifier status `86` across the clean, release and package CLI boundaries. Owned temporary directories are retained rather than deleted while cleanup is uncertain; ordinary confirmed-failure cleanup still removes them. Windows live tree-kill results are checked for failure rather than assuming success, and standalone inventory preview owns interruption signals and drains its child. The Windows result contract is unit-tested, not a native-Windows execution claim; a real POSIX preview-cancellation fixture verifies child disappearance, temporary cleanup and listener restoration. This is verification tooling, not a general Host process manager.
 
-The initial partial/failed checks were not promoted to success; the final current-source integration above supersedes them. New Windows/Node 22 execution and live scoped-package installation remain unverified until their separate gates are run.
+The initial partial/failed checks were not promoted to success; the final current-source integration above supersedes them. GitHub CI exercises Ubuntu Node 22.15/24 and Windows Node 24 for the exact release commit. The taskkill failure contract is tested without claiming an injected native-Windows failure; a live scoped-package Harness installation, real storage restart and provider entitlements remain separate checks.
 
-## Remaining owner gates
+## Separate npm and live-install gates
 
-1. Review the exact source/artifact/diff and actual local results; commit/push and inspect new CI only if separately requested.
-2. Authenticate directly with npm as `icanhcorpse`, establish scope/package publish permission, and review exact-version availability. Never provide credentials in chat.
-3. Explicitly approve and perform manual publication using [Publishing](<PUBLISHING.md>), then confirm public access and anonymous exact-version/tarball availability.
-4. Separately authorize an actual Harness registry-install smoke test, following lifecycle/migration instructions without deleting user data; record the loaded version and exercised behavior.
-5. Keep provider availability, commercial entitlement, hardware GPS/OS prompts, real storage restart, and other-runtime compatibility limits explicit. Earlier synthetic/local tests do not close these gates.
+1. Authenticate directly with npm as `icanhcorpse`, establish scope/package publish permission, and review exact-version availability. Never provide credentials in chat.
+2. Only after separate explicit owner approval, perform manual npm publication using [Publishing](<PUBLISHING.md>), then confirm public access and anonymous exact-version/tarball availability. The GitHub release does not satisfy this gate.
+3. Separately authorize an actual Harness install smoke test and local-to-scoped migration, following manager lifecycle instructions without activating both names or deleting user data; record the loaded package/version and exercised behavior.
+4. Keep provider availability, commercial entitlement, hardware GPS/OS prompts, real storage restart, and other-runtime compatibility limits explicit. Earlier synthetic/local tests do not close these gates.
 
 This review is not a security certification, legal opinion, service licence, or guarantee of registry/provider availability.
