@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: One-time current release tag
+        description: Recovery tag for the v1.2.1 follow-up release
         required: true
         type: choice
         options:
-          - v1.2.0
+          - v1.2.1
       publish:
         description: Set true only after npm OIDC setup to publish this tag
         required: true
@@ -27,7 +27,7 @@ concurrency:
 jobs:
   validate:
     name: Validate release before publishing
-    if: github.repository == 'ienugr/dsh-salah' && (github.event_name != 'release' || github.event.release.prerelease == false) && (github.event_name != 'workflow_dispatch' || (github.ref == 'refs/heads/main' && inputs.tag == 'v1.2.0'))
+    if: github.repository == 'ienugr/dsh-salah' && (github.event_name != 'release' || github.event.release.prerelease == false) && (github.event_name != 'workflow_dispatch' || (github.ref == 'refs/tags/v1.2.1' && inputs.tag == 'v1.2.1'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -39,14 +39,6 @@ jobs:
       release_tag: ${{ steps.release-metadata.outputs.release_tag }}
       release_commit: ${{ steps.release-metadata.outputs.release_commit }}
     steps:
-      - name: Check out current workflow validation tools
-        uses: actions/checkout@v4
-        with:
-          ref: refs/heads/main
-          path: release-tooling
-          fetch-depth: 0
-          persist-credentials: false
-
       - name: Check out the selected release tag
         uses: actions/checkout@v4
         with:
@@ -77,7 +69,7 @@ jobs:
           assert.match(tag, /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/, 'Only a stable vMAJOR.MINOR.PATCH release tag may publish.');
 
           const manifest = JSON.parse(await readFile('package.json', 'utf8'));
-          assert.equal(manifest.name, '@icanhcorpse/dsh-salah', 'Unexpected npm package name.');
+          assert.equal(manifest.name, '@ienugr/dsh-salah', 'Unexpected npm package name.');
           assert.equal(tag, `v${manifest.version}`, 'Release tag and package version must match exactly.');
           assert.equal(manifest.private, false, 'Refusing to publish a private package.');
           assert.equal(manifest.publishConfig?.access, 'public', 'Refusing to publish without public package access.');
@@ -122,13 +114,9 @@ jobs:
             assert.equal(event.release?.prerelease, false, 'Prereleases cannot publish to npm.');
           } else {
             assert.equal(eventType, 'workflow_dispatch', 'Unexpected publishing event.');
-            assert.equal(tag, 'v1.2.0', 'Manual dispatch is limited to the pre-existing v1.2.0 release.');
-            assert.equal(process.env.GITHUB_REF, 'refs/heads/main', 'Manual bootstrap publishing must run from main.');
-            try {
-              execFileSync('git', ['merge-base', '--is-ancestor', process.env.GITHUB_SHA, 'FETCH_HEAD'], { stdio: 'ignore', timeout: 10_000 });
-            } catch {
-              throw new Error('Manual workflow commit must remain on origin/main.');
-            }
+            assert.equal(tag, 'v1.2.1', 'Manual dispatch is limited to the prepared v1.2.1 follow-up release.');
+            assert.equal(process.env.GITHUB_REF, `refs/tags/${tag}`, 'Manual dispatch must use the selected release tag as its ref.');
+            assert.equal(process.env.GITHUB_SHA, taggedCommit, 'Manual dispatch must run from the exact release commit for provenance.');
           }
 
           await appendFile(process.env.GITHUB_OUTPUT, `package_version=${manifest.version}\nrelease_tag=${tag}\nrelease_commit=${taggedCommit}\n`);
@@ -169,16 +157,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/npm-release"
-          node "$GITHUB_WORKSPACE/release-tooling/scripts/check-package.mjs" \
-            --project-dir "$GITHUB_WORKSPACE/release-source" \
-            --output-dir "$RUNNER_TEMP/npm-release"
+          node scripts/check-package.mjs --output-dir "$RUNNER_TEMP/npm-release"
 
       - name: Upload the validated package artifact
         uses: actions/upload-artifact@v4
         with:
           name: npm-release-package
           path: |
-            ${{ runner.temp }}/npm-release/icanhcorpse-dsh-salah-*.tgz
+            ${{ runner.temp }}/npm-release/ienugr-dsh-salah-*.tgz
             ${{ runner.temp }}/npm-release/SHA256SUMS
           if-no-files-found: error
           retention-days: 1
@@ -218,9 +204,9 @@ jobs:
             test "$GITHUB_SHA" = "$RELEASE_COMMIT"
             test "$GITHUB_REF" = "refs/tags/$RELEASE_TAG"
           elif [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
-            test "$RELEASE_TAG" = v1.2.0
-            test "$GITHUB_REF" = refs/heads/main
-            git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD
+            test "$RELEASE_TAG" = v1.2.1
+            test "$GITHUB_REF" = "refs/tags/$RELEASE_TAG"
+            test "$GITHUB_SHA" = "$RELEASE_COMMIT"
           else
             echo 'Unexpected npm publishing event.' >&2
             exit 1
@@ -269,7 +255,7 @@ jobs:
 
           const version = process.env.PACKAGE_VERSION;
           assert.match(version, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
-          const archive = `icanhcorpse-dsh-salah-${version}.tgz`;
+          const archive = `ienugr-dsh-salah-${version}.tgz`;
           assert.ok((await stat(archive)).isFile(), 'Validated npm tarball is missing.');
           const npmVersion = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim();
           const [major, minor, patch] = npmVersion.split('.').map(Number);
@@ -278,25 +264,13 @@ jobs:
           console.log(`Verified release tarball for version ${version}; npm ${npmVersion}.`);
           NODE
 
-      - name: Publish stable GitHub release to npm with automatic provenance
-        if: github.event_name == 'release'
+      - name: Publish the tag-aligned validated release with OIDC provenance
         run: >-
           npm publish
-          "$RUNNER_TEMP/npm-release/icanhcorpse-dsh-salah-${PACKAGE_VERSION}.tgz"
+          "$RUNNER_TEMP/npm-release/ienugr-dsh-salah-${PACKAGE_VERSION}.tgz"
           --ignore-scripts
+          --provenance
           --access public
           --registry=https://registry.npmjs.org
         env:
           PACKAGE_VERSION: ${{ needs.validate.outputs.package_version }}
-
-      - name: Publish the pre-existing v1.2.0 through OIDC without a misleading attestation
-        if: github.event_name == 'workflow_dispatch'
-        run: >-
-          npm publish
-          "$RUNNER_TEMP/npm-release/icanhcorpse-dsh-salah-${PACKAGE_VERSION}.tgz"
-          --ignore-scripts
-          --access public
-          --registry=https://registry.npmjs.org
-        env:
-          PACKAGE_VERSION: ${{ needs.validate.outputs.package_version }}
-          NPM_CONFIG_PROVENANCE: 'false'

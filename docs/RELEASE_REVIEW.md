@@ -1,6 +1,8 @@
 # Historical local-bundle release and improvement review
 
-> **npm preparation update — 2026-11-09:** `@icanhcorpse/dsh-salah@1.2.0` is **prepared, not published**. See [the npm release review](<NPM_RELEASE_REVIEW.md>) for the renamed package's actual validation status and [Publishing](<PUBLISHING.md>) for manual owner steps. No live migration, registry install, or new browser run was performed during npm preparation. The original linked checkout remains running unchanged.
+> **Scope-alignment follow-up — 2026-11-12:** The new candidate is `@ienugr/dsh-salah@1.2.1`, prepared but not published. The immutable GitHub `v1.2.0` release and tarball remain under `@icanhcorpse/dsh-salah`. See [the npm release review](<NPM_RELEASE_REVIEW.md>) and [Publishing](<PUBLISHING.md>) for current scope, CI, and owner-side gates.
+>
+> **Historical npm preparation — 2026-11-09:** `@icanhcorpse/dsh-salah@1.2.0` was prepared but not published. No live migration, registry install, or new browser run was performed during that preparation. The original linked checkout remains running unchanged.
 
 Review date: **2026-11-08**. Historical target: **`@local/dsh-salah@1.2.0`**, distributed as a GitHub checkout/local DeepSeek Harness bundle. Unless explicitly updated below, this document describes that earlier execution, not the uncommitted npm-preparation worktree.
 

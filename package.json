@@ -1,6 +1,6 @@
 {
-  "name": "@icanhcorpse/dsh-salah",
-  "version": "1.2.0",
+  "name": "@ienugr/dsh-salah",
+  "version": "1.2.1",
   "description": "Prayer times with a compact floating current-prayer/countdown widget, current-location detection, worldwide location search, and selectable sources.",
   "private": false,
   "type": "module",

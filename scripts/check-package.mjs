@@ -12,8 +12,8 @@ import { runBoundedStage, verificationFailureExitCode } from './check-clean-inst
 import { createIsolatedNpmEnvironment } from './npm-environment.mjs';
 export { createIsolatedNpmEnvironment };
 
-export const PACKAGE_NAME = '@icanhcorpse/dsh-salah';
-export const PACKAGE_VERSION = '1.2.0';
+export const PACKAGE_NAME = '@ienugr/dsh-salah';
+export const PACKAGE_VERSION = '1.2.1';
 
 export function validateManifest(manifest) {
   assert.equal(manifest.name, PACKAGE_NAME, 'Unexpected npm package identity.');
@@ -52,7 +52,7 @@ export function validatePackInventory(records) {
   assert.equal(inventory.name, PACKAGE_NAME, 'Unexpected packed package identity.');
   assert.equal(inventory.version, PACKAGE_VERSION, 'Unexpected packed package version.');
   assert.equal(inventory.id, `${PACKAGE_NAME}@${PACKAGE_VERSION}`, 'Unexpected packed package id.');
-  assert.equal(inventory.filename, `icanhcorpse-dsh-salah-${PACKAGE_VERSION}.tgz`, 'Unexpected packed filename.');
+  assert.equal(inventory.filename, `ienugr-dsh-salah-${PACKAGE_VERSION}.tgz`, 'Unexpected packed filename.');
   for (const key of ['size', 'unpackedSize']) assert.ok(Number.isSafeInteger(inventory[key]) && inventory[key] > 0 && inventory[key] <= 32 * 1024 * 1024, `Unexpected packed ${key}.`);
   assert.ok(Array.isArray(inventory.files) && inventory.files.length <= 512, 'Unexpected packed inventory length.');
   assert.equal(inventory.entryCount, inventory.files.length, 'Packed entry count mismatch.');
@@ -112,7 +112,7 @@ export async function validatePackageDirectory(directory, { expectedManifest, in
   const manifest = validateManifest(JSON.parse(await text('package.json')));
   if (expectedManifest) assert.deepEqual(manifest, expectedManifest, 'Installed manifest differs from the source manifest.');
   const patch = await text('cordis.patch.yml');
-  assert.match(patch.replace(/\r\n/g, '\n'), /^\s*- insert:\s*\n\s+- id: dsh-salah\s*\n\s+name: ['"]?@icanhcorpse\/dsh-salah['"]?\s*\n\s+config: \{\}\s*$/, 'Bundle patch must preserve its row id and match the npm identity.');
+  assert.match(patch.replace(/\r\n/g, '\n'), /^\s*- insert:\s*\n\s+- id: dsh-salah\s*\n\s+name: ['"]?@ienugr\/dsh-salah['"]?\s*\n\s+config: \{\}\s*$/, 'Bundle patch must preserve its row id and match the npm identity.');
   const client = await text('client.js');
   const registrations = [];
   vm.runInNewContext(client, { window: { __ModuleLoader__: { load: registration => registrations.push(registration) } } }, { timeout: 1000 });
@@ -190,7 +190,7 @@ import { createRequire } from 'node:module';
 import * as plugin from '${PACKAGE_NAME}';
 const consumer = dirname(fileURLToPath(import.meta.url));
 const root = dirname(fileURLToPath(import.meta.resolve('${PACKAGE_NAME}')));
-assert.equal(root, join(consumer, 'node_modules', '@icanhcorpse', 'dsh-salah'));
+assert.equal(root, join(consumer, 'node_modules', '@ienugr', 'dsh-salah'));
 const { expectedManifest, inventory } = JSON.parse(await readFile(join(consumer, 'expected-artifact.json'), 'utf8'));
 const { validatePackageDirectory } = await import(pathToFileURL(join(root, 'scripts', 'check-package.mjs')));
 await validatePackageDirectory(root, { expectedManifest, inventory });

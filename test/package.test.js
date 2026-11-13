@@ -10,14 +10,14 @@ import vm from 'node:vm';
 
 const root = new URL('../', import.meta.url);
 const text = name => readFile(new URL(name, root), 'utf8');
-const packageName = '@icanhcorpse/dsh-salah';
+const packageName = '@ienugr/dsh-salah';
 
 test('npm metadata validator rejects mismatched identity, private/access, exports and registry metadata', async () => {
   const { validateManifest } = await import('../scripts/check-package.mjs');
   const manifest = JSON.parse(await text('package.json'));
   validateManifest(manifest);
   for (const mutation of [
-    { name: '@local/dsh-salah' }, { version: '1.2.1' }, { private: true },
+    { name: '@local/dsh-salah' }, { version: '1.2.2' }, { private: true },
     { publishConfig: { access: 'restricted', registry: 'https://registry.npmjs.org' } },
     { publishConfig: { access: 'public', registry: 'https://example.test' } },
     { repository: { type: 'git', url: 'file:private' } },
@@ -29,7 +29,7 @@ test('npm metadata validator rejects mismatched identity, private/access, export
 test('public npm package identity agrees with the inert Client registration and bundle patch', async () => {
   const manifest = JSON.parse(await text('package.json'));
   assert.equal(manifest.name, packageName);
-  assert.equal(manifest.version, '1.2.0');
+  assert.equal(manifest.version, '1.2.1');
   assert.equal(manifest.private, false);
   assert.equal(manifest.publishConfig?.access, 'public');
   assert.equal(manifest.repository?.type, 'git');
@@ -39,13 +39,13 @@ test('public npm package identity agrees with the inert Client registration and 
   assert.equal(registrations.length, 1);
   assert.equal(registrations[0].id, packageName);
   assert.equal(typeof registrations[0].factory, 'function');
-  assert.match(await text('cordis.patch.yml'), /id: dsh-salah\s+name: ['"]?@icanhcorpse\/dsh-salah['"]?\s+config: \{\}/);
+  assert.match(await text('cordis.patch.yml'), /id: dsh-salah\s+name: ['"]?@ienugr\/dsh-salah['"]?\s+config: \{\}/);
 });
 
 test('packed inventory rejects missing assets, private inputs, traversal and implausible size metadata', async () => {
   const { validatePackInventory, REQUIRED_FILES } = await import('../scripts/check-package.mjs');
   const files = REQUIRED_FILES.map(path => ({ path, size: 10, mode: 420 }));
-  const valid = { name: packageName, version: '1.2.0', id: `${packageName}@1.2.0`, filename: 'icanhcorpse-dsh-salah-1.2.0.tgz', size: 100, unpackedSize: files.length * 10, entryCount: files.length, files };
+  const valid = { name: packageName, version: '1.2.1', id: `${packageName}@1.2.1`, filename: 'ienugr-dsh-salah-1.2.1.tgz', size: 100, unpackedSize: files.length * 10, entryCount: files.length, files };
   assert.ok(validatePackInventory([valid]).has('client.js'));
   for (const mode of [0o600, 0o666]) assert.ok(validatePackInventory([{ ...valid, files: files.map(file => ({ ...file, mode })) }]).has('client.js'), 'accept owner-readable Unix/Windows mode metadata');
   for (const mutation of [
@@ -187,13 +187,13 @@ test('publishing preserves the exact validated npm archive and rejects unsafe de
     const output = join(fixture, 'verified output');
     await mkdir(sourceRoot);
     await mkdir(output);
-    const filename = 'icanhcorpse-dsh-salah-1.2.0.tgz';
+    const filename = 'ienugr-dsh-salah-1.2.1.tgz';
     const archive = join(fixture, filename);
     const bytes = Buffer.from(`validated archive fixture ${'x'.repeat(256)}`);
     await writeFile(archive, bytes);
     const files = REQUIRED_FILES.map(path => ({ path, size: 10, mode: 420 }));
     const inventory = {
-      name: packageName, version: '1.2.0', id: `${packageName}@1.2.0`, filename,
+      name: packageName, version: '1.2.1', id: `${packageName}@1.2.1`, filename,
       size: bytes.length, unpackedSize: files.length * 10, entryCount: files.length, files,
       shasum: createHash('sha1').update(bytes).digest('hex'),
       integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,

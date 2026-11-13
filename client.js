@@ -1,6 +1,6 @@
 /* Persistent Harness client. Build scoped daisyUI CSS with npm run build:ui. */
 window.__ModuleLoader__.load({
-  id: '@icanhcorpse/dsh-salah',
+  id: '@ienugr/dsh-salah',
   factory(require) {
     const React = require('react');
     const h = React.createElement;

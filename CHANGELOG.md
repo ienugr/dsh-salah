@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.1 — Unreleased
+
+**Prepared, not published.** The npm package scope is aligned to the new account as `@ienugr/dsh-salah@1.2.1`. The immutable GitHub `v1.2.0` release and its `@icanhcorpse/dsh-salah` tarball remain unchanged. No npm publication or live migration is implied.
+
+### Changed
+
+- Aligned package, lockfile, Cordis patch, and Client loader identity with the npm account `ienugr` without changing storage, service, row, slot, or browser view-state identifiers.
+- Prepared the OIDC release workflow and user documentation for the follow-up package; owner-side Trusted Publisher configuration and publication remain pending.
+- Preserved the historical browser record for `@local/dsh-salah`; it is not UI evidence for either scoped package.
+
 ## 1.2.0 — 2026-11-11
 
 GitHub distribution uses the validated `icanhcorpse-dsh-salah-1.2.0.tgz` bundle and SHA-256 checksums. The existing GitHub release did not publish the public npm target `@icanhcorpse/dsh-salah@1.2.0`; future stable releases published directly are wired to npm Trusted Publishing (OIDC) after the account owner configures its publisher. The source repository remains [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). No npm registry install or live local-to-scoped migration is implied.

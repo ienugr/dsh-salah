@@ -44,9 +44,9 @@ The lockfile is included for reproducible development. Do not use `npm audit fix
 
 ## Package identity and user data
 
-The public target is `@icanhcorpse/dsh-salah@1.2.0`; publication is pending. GitHub stays [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). Keep package, lockfile, patch package references, and client loader identity consistent, but preserve existing service/row/slot IDs, storage domain `salah_preferences` version `1`, and `dsh.salah.floating.v1` / `dsh.salah.review.v1` browser keys. Never treat a package rename as permission to reset preferences or credentials.
+The prepared public target is `@ienugr/dsh-salah@1.2.1`; npm publication is pending. The earlier immutable GitHub `v1.2.0` release remains `@icanhcorpse/dsh-salah`. GitHub stays [ienugr/dsh-salah](https://github.com/ienugr/dsh-salah). Keep package, lockfile, patch package references, and client loader identity consistent, but preserve existing service/row/slot IDs, storage domain `salah_preferences` version `1`, and `dsh.salah.floating.v1` / `dsh.salah.review.v1` browser keys. Never treat a package rename as permission to reset preferences or credentials.
 
-Do not install both old and new package names into one profile. Use the [README migration](<README.md#migrate-from-localdsh-salah>) and the Plugin Manager's lifecycle result; no hand-edited profile files or profile package-manager commands. The current preparation did not migrate or reinstall the live plugin. Unchanged slot registrations do not establish that a new module generation loaded.
+Do not install both old and new package names into one profile. Use the [README migration](<README.md#previous-installations>) and the Plugin Manager's lifecycle result; no hand-edited profile files or profile package-manager commands. The current preparation did not migrate or reinstall the live plugin. Unchanged slot registrations do not establish that a new module generation loaded.
 
 ## Interface changes
 
